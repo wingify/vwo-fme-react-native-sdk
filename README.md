@@ -1,4 +1,4 @@
-# VWO FME React Native SDK
+# VWO React-native SDK for Feature Managamenet & Experimentation
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -11,6 +11,10 @@ yarn add vwo-fme-react-native-sdk
 For iOS, install the CocoaPods dependencies by running below command. Supports iOS version 12.0 and above.
 
 `cd ios && pod install`
+
+## Official Documentation
+
+For more detailed documentation, please refer [here](https://developers.vwo.com/v2/docs/fme-flutter-install).
 
 ## Basic Usage
 
