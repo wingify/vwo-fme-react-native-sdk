@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Wingify Software Pvt. Ltd.
+ * Copyright 2024-2025 Wingify Software Pvt. Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@ export interface VWOInitOptions {
   gatewayService?: { [key: string]: any };
   cachedSettingsExpiryTime?: number;
   pollInterval?: number;
+  batchMinSize?: number;
+  batchUploadTimeInterval?: number;
 }
 // Interface representing the context of a user
 export interface VWOContext {

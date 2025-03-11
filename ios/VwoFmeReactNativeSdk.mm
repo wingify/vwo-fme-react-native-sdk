@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Wingify Software Pvt. Ltd.
+ * Copyright 2024-2025 Wingify Software Pvt. Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,9 @@
 RCT_EXTERN_METHOD(initialize:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(getFlag:(NSString *)featureKey context:(NSDictionary *)context resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(trackEvent:(NSString *)eventName context:(NSDictionary *)context eventProperties:(NSDictionary *)eventProperties)
-RCT_EXTERN_METHOD(setAttribute:(NSString *)attributeKey attributeValue:(id)attributeValue context:(NSDictionary *)context)
+RCT_EXTERN_METHOD(setAttribute:(NSDictionary *)attributes context:(NSDictionary *)context)
 RCT_EXTERN_METHOD(registerIntegrationCallback:(RCTResponseSenderBlock)callback)
+RCT_EXTERN_METHOD(setSessionData:(NSDictionary *)data)
 
 + (BOOL)requiresMainQueueSetup
 {

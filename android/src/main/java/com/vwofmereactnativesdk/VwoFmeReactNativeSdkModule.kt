@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Wingify Software Pvt. Ltd.
+ * Copyright 2024-2025 Wingify Software Pvt. Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.vwofmereactnativesdk
 
 import android.util.Log
@@ -34,6 +34,9 @@ import com.vwo.models.Variable
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableArray
 import com.facebook.react.bridge.WritableMap
+import com.vwo.interfaces.logger.LogTransport
+import com.vwo.packages.logger.enums.LogLevelEnum
+import com.vwo.models.user.FMEConfig
 
 class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
@@ -66,6 +69,33 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
               0
           }
 
+        val batchMinSize =
+            if (options.hasKey("batchMinSize") && !options.isNull("batchMinSize")) {
+                options.getInt("batchMinSize")
+            } else {
+                -1
+            }
+
+        val batchUploadTimeInterval =
+            if (options.hasKey("batchUploadTimeInterval") && !options.isNull("batchUploadTimeInterval")) {
+                options.getDouble("batchUploadTimeInterval").toLong()
+            } else {
+                -1L
+            }
+
+        val logger2: MutableList<Map<String, Any>> = mutableListOf()
+        val transport: MutableMap<String, Any> = mutableMapOf()
+        transport["defaultTransport"] = object : LogTransport {
+          override fun log(level: LogLevelEnum, message: String?) {
+                if (message == null) return
+                val logParams = Arguments.createMap()
+                logParams.putString("message", message)
+                logParams.putString("type", level.name)
+                sendEvent("LogEvent", logParams)
+            }
+        }
+        logger2.add(transport)
+
         val loggerValue = options.getString("logLevel")
         val logger = mutableMapOf<String, Any>().apply {
             if (loggerValue != null) {
@@ -73,11 +103,12 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
             } else {
                 put("level", "ERROR")
             }
+            put("transports", logger2)
         }
 
         val sdkName = "vwo-fme-react-native-sdk"
-        val sdkVersion = "1.0.0"
-        
+        val sdkVersion = "1.4.0"
+
         val vwoOptions = VWOInitOptions().apply {
             this.sdkKey = sdkKey
             this.accountId = accountId
@@ -88,6 +119,8 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
             this.logger = logger
             this.sdkName = sdkName
             this.sdkVersion = sdkVersion
+            this.batchMinSize = batchMinSize
+            this.batchUploadTimeInterval = batchUploadTimeInterval
             if (hasIntegrations) {
                 this.integrations = object : IntegrationCallback {
                     override fun execute(properties: Map<String, Any>) {
@@ -153,27 +186,24 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
 
     // Set an attribute for the given context
     @ReactMethod
-    fun setAttribute(attributeKey: String, attributeValue: ReadableMap, context: ReadableMap) {
+    fun setAttribute(attributes: ReadableMap, context: ReadableMap) {
         val vwoContext = VWOContext().apply {
             this.id = context.getString("id") ?: ""
         }
-        val attributeValueToSend: Any? = when {
-            attributeValue.hasKey("value") -> {
-                when (attributeValue.getType("value")) {
-                    ReadableType.String -> attributeValue.getString("value")
-                    ReadableType.Number -> attributeValue.getDouble("value")
-                    ReadableType.Boolean -> attributeValue.getBoolean("value")
-                    else -> {
-                        throw IllegalArgumentException("Unsupported attribute value type")
-                    }
-                }
-            }
-            else -> null
+        val attributesMap = attributes.toHashMap()
+        VWO.setAttribute(attributesMap, vwoContext)
+    }
+
+    // Sets the session data for the current FME session.
+    @ReactMethod
+    fun setSessionData(data: ReadableMap) {
+        val sessionData = data.toHashMap()
+        val sessionIdValue = sessionData["sessionId"]
+        if (sessionIdValue is Double) {
+            val sessionIdLong = sessionIdValue.toLong()
+            sessionData["sessionId"] = sessionIdLong
         }
-        print(attributeValueToSend)
-        if (attributeValueToSend != null) {
-            VWO.setAttribute(attributeKey, attributeValueToSend, vwoContext)
-        }
+        FMEConfig.setSessionData(sessionData)
     }
 
     fun ReadableMap.toHashMap(): HashMap<String, Any> {

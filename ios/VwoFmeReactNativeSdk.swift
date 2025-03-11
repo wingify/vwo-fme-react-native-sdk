@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Wingify Software Pvt. Ltd.
+ * Copyright 2024-2025 Wingify Software Pvt. Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 import VWO_FME
 import React
 import Foundation
 
 // Define a class that extends RCTEventEmitter and conforms to IntegrationCallback protocol
 @objc(VwoFmeReactNativeSdk)
-class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback {
+class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
+
+    // Sends a log message and its type as a "LogEvent" to JavaScript for display in the console.
+    func log(logType: String, message: String) {
+        sendEvent(withName: "LogEvent", body: ["message": message,
+                                                "type": logType])
+    }
 
       // A callback to handle integration responses
       private var integrationCallback: RCTResponseSenderBlock?
@@ -32,7 +38,7 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback {
 
     // Define the supported events that can be emitted to JavaScript
     override func supportedEvents() -> [String]! {
-        return ["IntegrationCallbackEvent"]
+        return ["IntegrationCallbackEvent", "LogEvent"]
     }
 
     // Register a callback for integration events
@@ -79,14 +85,24 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback {
       if let interval = options["pollInterval"] as? Int64 {
           pollInterval = interval
       }
-      
+
+      var batchMinSize: Int? = nil
+      if let minSize = options["batchMinSize"] as? Int {
+          batchMinSize = minSize
+      }
+
+      var batchUploadTimeInterval: Int64? = nil
+      if let timeInterval = options["batchUploadTimeInterval"] as? Int64 {
+          batchUploadTimeInterval = timeInterval
+      }
+
       var gatewayService: [String: Any] = [:]
       if let gateway = options["gatewayService"] as? [String: Any] {
           gatewayService = gateway
       }
 
       var sdkName: String = "vwo-fme-react-native-sdk"
-      var sdkVersion: String = "1.0.0"
+      var sdkVersion: String = "1.4.0"
 
       let vwoOptions: VWOInitOptions
       if hasIntegrations {
@@ -97,8 +113,11 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback {
                                       gatewayService: gatewayService,
                                       cachedSettingsExpiryTime: cachedSettingsExpiry,
                                       pollInterval: pollInterval,
+                                      batchMinSize: batchMinSize,
+                                      batchUploadTimeInterval: batchUploadTimeInterval,
                                       sdkName: sdkName,
-                                      sdkVersion: sdkVersion)
+                                      sdkVersion: sdkVersion,
+                                      logTransport: self)
       } else {
           vwoOptions = VWOInitOptions(sdkKey: sdkKey,
                                       accountId: accountId,
@@ -106,11 +125,14 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback {
                                       gatewayService: gatewayService,
                                       cachedSettingsExpiryTime: cachedSettingsExpiry,
                                       pollInterval: pollInterval,
+                                      batchMinSize: batchMinSize,
+                                      batchUploadTimeInterval: batchUploadTimeInterval,
                                       sdkName: sdkName,
-                                      sdkVersion: sdkVersion)
-          
+                                      sdkVersion: sdkVersion,
+                                      logTransport: self)
+
       }
-      
+
     VWOFme.initialize(options: vwoOptions) { result in
       switch result {
       case .success(let message):
@@ -120,7 +142,7 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback {
       }
     }
   }
-  
+
   // Retrieve a feature flag with the given context
   @objc
   func getFlag(_ featureKey: String, context: NSDictionary, resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
@@ -145,11 +167,16 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback {
 
   // Set an attribute for the given context
   @objc
-  func setAttribute(_ attributeKey: String, attributeValue: Any, context: NSDictionary) {
+  func setAttribute(_ attributes: NSDictionary, context: NSDictionary) {
       let vwoContext = VWOContext(id: context["id"] as? String, customVariables: context["customVariables"] as? [String: Any] ?? [:])
-      VWOFme.setAttribute(attributeKey: attributeKey, attributeValue: attributeValue, context: vwoContext)
+      VWOFme.setAttribute(attributes: attributes as? [String: Any] ?? [:], context: vwoContext)
   }
 
+  // Sets the session data for the current FME session.
+  @objc
+  func setSessionData(_ data: NSDictionary) {
+      FmeConfig.setSessionData(data as? [String: Any] ?? [:])
+  }
 
   override static func requiresMainQueueSetup() -> Bool {
     return false

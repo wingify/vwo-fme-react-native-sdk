@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Wingify Software Pvt. Ltd.
+ * Copyright 2024-2025 Wingify Software Pvt. Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,24 @@ const VwoFmeReactNativeSdk = NativeModules.VwoFmeReactNativeSdk
 
 // Create an event emitter for the native module to handle events from the native side.
 const myModuleEmitter = new NativeEventEmitter(VwoFmeReactNativeSdk);
+const logListener = myModuleEmitter.addListener('LogEvent', (event) => {
+  const { message, type } = event;
+  switch (type) {
+    case 'INFO':
+    case 'DEBUG':
+    case 'TRACE':
+      console.log(message);
+      break;
+    case 'WARN':
+      console.warn(message);
+      break;
+    case 'ERROR':
+      console.error(message);
+      break;
+    default:
+      console.log(message);
+  }
+});
 
 // VWO interface to interact with the native module
 const VWONative: VWOBridgeInterface = VwoFmeReactNativeSdk;
@@ -53,15 +71,16 @@ interface VWOBridgeInterface {
   ): void;
 
   setAttribute(
-    attributeKey: string,
-    attributeValue: any,
+    attributes: { [key: string]: any },
     context: VWOContext
   ): Promise<any>;
+
+  setSessionData(data: { [key: string]: any }): void;
 }
 
 // Determine the platform (iOS or Android) to handle platform-specific logic.
-const platform = Platform.OS;
-const platformAndroid = platform === 'android' ? true : false;
+// const platform = Platform.OS;
+// const platformAndroid = platform === 'android' ? true : false;
 
 // Initialize the SDK with the provided options
 export async function init(options: VWOInitOptions): Promise<any> {
@@ -74,7 +93,7 @@ export async function init(options: VWOInitOptions): Promise<any> {
     console.error('Failed to initialize VWO:', error);
     throw error;
   }
-};
+}
 
 // Main class to interact with the SDK
 // This class provides methods to initialize the SDK, manage feature flags, track events, and set user attributes.
@@ -125,21 +144,21 @@ export class VWO {
     }
   };
 
-  // Set an attribute for a user in the context provided
+  // Set attributes for a user in the context provided
   setAttribute = async (
-    attributeKey: string,
-    attributeValue: any,
+    attributes: { [key: string]: any },
     context: VWOContext
   ): Promise<any> => {
     try {
-      VWONative.setAttribute(
-        attributeKey,
-        platformAndroid ? { value: attributeValue } : attributeValue,
-        context
-      );
+      VWONative.setAttribute(attributes, context);
     } catch (error) {
       console.error('Failed to set attribute:', error);
     }
+  };
+
+  // Sets the session data for the current FME session.
+  setSessionData = async (data: { [key: string]: any }) => {
+    VWONative.setSessionData(data);
   };
 
   // Register a callback for integration event
@@ -152,4 +171,8 @@ export class VWO {
     );
     return () => subscription.remove();
   }
+
+  cleanup?: () => void = () => {
+    logListener.remove();
+  };
 }

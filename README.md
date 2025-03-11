@@ -14,7 +14,7 @@ For iOS, install the CocoaPods dependencies by running below command. Supports i
 
 ## Official Documentation
 
-For more detailed documentation, please refer [here](https://developers.vwo.com/v2/docs/fme-flutter-install).
+For more detailed documentation, please refer [here](https://developers.vwo.com/v2/docs/fme-react-native-install).
 
 ## Basic Usage
 
@@ -61,7 +61,8 @@ const eventProperties = { 'amount': 99 };
 vwoClient.trackEvent('vwo_event_name', userContext, eventProperties);
 
 // send attributes data
-vwoClient.setAttribute('attribute_name', 'attribute_value', userContext);
+const attributes = { attr1: value1, attr2: value2 };
+vwoClient.setAttribute(attributes, userContext);
 ```
 
 ## Authors
@@ -84,4 +85,4 @@ Please go through our [contributing guidelines](https://github.com/wingify/vwo-f
 
 [Apache License, Version 2.0](https://github.com/wingify/vwo-fme-react-native-sdk/blob/master/LICENSE)
 
-Copyright 2024 Wingify Software Pvt. Ltd.
+Copyright 2024-2025 Wingify Software Pvt. Ltd.
