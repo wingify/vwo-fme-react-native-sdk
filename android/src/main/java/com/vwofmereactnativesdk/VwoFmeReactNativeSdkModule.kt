@@ -107,7 +107,7 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
         }
 
         val sdkName = "vwo-fme-react-native-sdk"
-        val sdkVersion = "1.4.0"
+        val sdkVersion = "1.5.0"
 
         val vwoOptions = VWOInitOptions().apply {
             this.sdkKey = sdkKey
@@ -156,8 +156,6 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
         val vwoContext = VWOContext().apply {
             this.id = context.getString("id") ?: ""
             this.customVariables = context.getMap("customVariables")?.toHashMap() ?: HashMap<String, Any>()
-            this.ipAddress = context.getString("ipAddress") ?: ""
-            this.userAgent = context.getString("userAgent") ?: ""
         }
         VWO.getFlag(featureKey, vwoContext, object : IVwoListener {
             override fun onSuccess(result: Any) {

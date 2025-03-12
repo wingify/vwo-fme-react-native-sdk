@@ -31,8 +31,6 @@ export interface VWOInitOptions {
 export interface VWOContext {
   id?: string;
   customVariables?: { [key: string]: any };
-  userAgent?: string;
-  ipAddress?: string;
 }
 
 // Interface representing a variable used in feature flags

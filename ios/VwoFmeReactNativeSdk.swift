@@ -102,7 +102,7 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
       }
 
       var sdkName: String = "vwo-fme-react-native-sdk"
-      var sdkVersion: String = "1.4.0"
+      var sdkVersion: String = "1.5.0"
 
       let vwoOptions: VWOInitOptions
       if hasIntegrations {
@@ -146,7 +146,7 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
   // Retrieve a feature flag with the given context
   @objc
   func getFlag(_ featureKey: String, context: NSDictionary, resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
-      let vwoContext = VWOContext(id: context["id"] as? String, customVariables: context["customVariables"] as? [String: Any] ?? [:], ipAddress: context["ipAddress"] as? String ?? "", userAgent: context["userAgent"] as? String ?? "")
+      let vwoContext = VWOContext(id: context["id"] as? String, customVariables: context["customVariables"] as? [String: Any] ?? [:])
 
       VWOFme.getFlag(featureKey: featureKey, context: vwoContext) { flag in
 
