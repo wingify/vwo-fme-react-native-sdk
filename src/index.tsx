@@ -175,4 +175,16 @@ export class VWO {
   cleanup?: () => void = () => {
     logListener.remove();
   };
+
+  // Register a callback for logs
+  static registerLogCallback(
+    callback: (log: { message: string; type: string }) => void
+  ) {
+    const logSubscription = myModuleEmitter.addListener('LogEvent', (event) => {
+      const { message, type } = event;
+      callback({ message, type });
+    });
+
+    return () => logSubscription.remove();
+  }
 }

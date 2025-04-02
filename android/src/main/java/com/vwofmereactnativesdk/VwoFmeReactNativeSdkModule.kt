@@ -107,7 +107,7 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
         }
 
         val sdkName = "vwo-fme-react-native-sdk"
-        val sdkVersion = "1.5.0"
+        val sdkVersion = "1.6.0"
 
         val vwoOptions = VWOInitOptions().apply {
             this.sdkKey = sdkKey
@@ -248,17 +248,63 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
             variableMap.putString("type", variable["type"] as? String)
             variableMap.putInt("id", variable["id"] as? Int ?: 0)
 
-            when (val value = variable["value"]) {
-                is String -> variableMap.putString("value", value)
-                is Int -> variableMap.putInt("value", value)
-                is Double -> variableMap.putDouble("value", value)
-                is Boolean -> variableMap.putBoolean("value", value)
-                else -> variableMap.putString("value", value.toString())
+            val type = variable["type"] as? String
+            val value = variable["value"]
+            if (type == "json") {
+                when (value) {
+                    is Map<*, *> -> variableMap.putMap("value", mapToWritableMap(value))
+                    is List<*> -> variableMap.putArray("value", listToWritableArray(value))
+                    else -> variableMap.putString("value", value.toString())
+                }          
+            } else {
+                when (value) {
+                    is String -> variableMap.putString("value", value)
+                    is Int -> variableMap.putInt("value", value)
+                    is Double -> variableMap.putDouble("value", value)
+                    is Boolean -> variableMap.putBoolean("value", value)
+                    else -> variableMap.putString("value", value.toString())
+                }
             }
             variablesArray.pushMap(variableMap)
         }
         map.putArray("variables", variablesArray)
         return map
+    }
+
+    // Helper function to convert a Map to a WritableMap
+    // The map is now in a format that can be sent over the React Native bridge to JavaScript for use.
+    fun mapToWritableMap(linkedHashMap: Map<*, *>): WritableMap {
+        val writableMap = Arguments.createMap()
+        for ((key, value) in linkedHashMap) {
+            when (value) {
+                is Map<*, *> -> writableMap.putMap(key as String, mapToWritableMap(value))
+                is List<*> -> writableMap.putArray(key as String, listToWritableArray(value))
+                is Boolean -> writableMap.putBoolean(key as String, value)
+                is Int -> writableMap.putInt(key as String, value)
+                is Double -> writableMap.putDouble(key as String, value)
+                is String -> writableMap.putString(key as String, value)
+                else -> writableMap.putString(key as String, value.toString())
+            }
+        }
+        return writableMap
+    }
+
+    // Helper function to convert a List to WritableArray
+    // The array is now in a format that can be sent over the React Native bridge to JavaScript for use.
+    fun listToWritableArray(list: List<*>): WritableArray {
+        val array = Arguments.createArray()
+        list.forEach { element ->
+            when (element) {
+                is String -> array.pushString(element)
+                is Int -> array.pushInt(element)
+                is Double -> array.pushDouble(element)
+                is Boolean -> array.pushBoolean(element)
+                is Map<*, *> -> array.pushMap(mapToWritableMap(element))
+                is List<*> -> array.pushArray(listToWritableArray(element))
+                else -> array.pushString(element.toString())
+            }
+        }
+        return array
     }
 
     // Event emitter for sending events to JavaScript
