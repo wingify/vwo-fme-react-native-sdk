@@ -53,7 +53,11 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
 
         val gatewayService = options.getMap("gatewayService")?.toHashMap() ?: HashMap<String, Any>()
 
-        val hasIntegrations = options.getBoolean("integrations") ?: false
+        val hasIntegrations = if (options.hasKey("integrations") && !options.isNull("integrations")) {
+            options.getBoolean("integrations")
+        } else {
+            false
+        }
 
         val pollInterval =
             if (options.hasKey("pollInterval") && !options.isNull("pollInterval")) {
@@ -107,7 +111,7 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
         }
 
         val sdkName = "vwo-fme-react-native-sdk"
-        val sdkVersion = "1.6.0"
+        val sdkVersion = "1.6.1"
 
         val vwoOptions = VWOInitOptions().apply {
             this.sdkKey = sdkKey
@@ -131,6 +135,8 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
                                 is Int -> params.putInt(key, value)
                                 is Double -> params.putDouble(key, value)
                                 is Boolean -> params.putBoolean(key, value)
+                                is Map<*, *> -> params.putMap(key, mapToWritableMap(value))
+                                is List<*> -> params.putArray(key, listToWritableArray(value))
                                 else -> params.putString(key, value.toString())
                             }
                         }
