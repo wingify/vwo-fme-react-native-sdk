@@ -15,7 +15,7 @@
  */
 
 import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
-import type { VWOInitOptions, VWOContext, GetFlagResult } from './types';
+import type { VWOInitOptions, VWOUserContext, GetFlagResult } from './types';
 
 const LINKING_ERROR =
   `The package 'vwo-fme-react-native-sdk' doesn't seem to be linked. Make sure: \n\n` +
@@ -62,17 +62,17 @@ const VWONative: VWOBridgeInterface = VwoFmeReactNativeSdk;
 interface VWOBridgeInterface {
   initialize(options: VWOInitOptions): Promise<string>;
 
-  getFlag(featureKey: string, context: VWOContext): Promise<GetFlagResult>;
+  getFlag(featureKey: string, context: VWOUserContext): Promise<GetFlagResult>;
 
   trackEvent(
     eventName: string,
-    context: VWOContext,
+    context: VWOUserContext,
     eventProperties?: { [key: string]: any }
   ): void;
 
   setAttribute(
     attributes: { [key: string]: any },
-    context: VWOContext
+    context: VWOUserContext
   ): Promise<any>;
 
   setSessionData(data: { [key: string]: any }): void;
@@ -86,8 +86,15 @@ interface VWOBridgeInterface {
 export async function init(options: VWOInitOptions): Promise<any> {
   try {
     const vwoInstance = new VWO();
-    await VWONative.initialize(options);
-    // console.log('VWO initialized:', message);
+    // Update vwoMeta to include React Native version for usage statistics
+    const updatedOptions = {
+      ...options,
+      vwoMeta: {
+        ...(options.vwoMeta || {}), // Safely handle undefined vwoMeta
+        lv: `${Platform.constants.reactNativeVersion.major}.${Platform.constants.reactNativeVersion.minor}.${Platform.constants.reactNativeVersion.patch}`,
+      },
+    };
+    await VWONative.initialize(updatedOptions);
     return vwoInstance;
   } catch (error) {
     console.error('Failed to initialize VWO:', error);
@@ -101,7 +108,7 @@ export class VWO {
   // Get the flag value for the given feature key
   getFlag = async (
     featureKey: string,
-    context: VWOContext
+    context: VWOUserContext
   ): Promise<GetFlagResult> => {
     try {
       const flag: any = await VWONative.getFlag(featureKey, context);
@@ -134,7 +141,7 @@ export class VWO {
   // Track an event with properties
   trackEvent = (
     eventName: string,
-    context: VWOContext,
+    context: VWOUserContext,
     eventProperties?: { [key: string]: any }
   ): void => {
     try {
@@ -147,7 +154,7 @@ export class VWO {
   // Set attributes for a user in the context provided
   setAttribute = async (
     attributes: { [key: string]: any },
-    context: VWOContext
+    context: VWOUserContext
   ): Promise<any> => {
     try {
       VWONative.setAttribute(attributes, context);

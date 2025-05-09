@@ -26,9 +26,11 @@ export interface VWOInitOptions {
   pollInterval?: number;
   batchMinSize?: number;
   batchUploadTimeInterval?: number;
+  isUsageStatsDisabled?: boolean;
+  vwoMeta?: { [key: string]: any };
 }
 // Interface representing the context of a user
-export interface VWOContext {
+export interface VWOUserContext {
   id?: string;
   customVariables?: { [key: string]: any };
 }

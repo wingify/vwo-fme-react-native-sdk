@@ -34,7 +34,7 @@ import { init } from 'vwo-fme-react-native-sdk';
 
 import {
   VWOInitOptions,
-  VWOContext,
+  VWOUserContext,
   GetFlagResult,
 } from 'vwo-fme-react-native-sdk/src/types';
 
@@ -56,7 +56,7 @@ useEffect(() => {
 }, []);
 
 // create user context
-const userContext: VWOContext = { id: 'unique_user_id', customVariables: {key_1: 0, key_2: 1} };
+const userContext: VWOUserContext = { id: 'unique_user_id', customVariables: {key_1: 0, key_2: 1} };
 
 // get feature flag
 const flagResult: GetFlagResult = await vwoClient.getFlag('feature_key', userContext);
@@ -120,9 +120,9 @@ The following table explains all the parameters in the `context` object:
 #### Example
 
 ```javascript
-import {  VWOContext } from 'vwo-fme-react-native-sdk/src/types';
+import {  VWOUserContext } from 'vwo-fme-react-native-sdk/src/types';
 
-const userContext: VWOContext = { id: 'unique_user_id', customVariables: { age: 25, location: 'US' } };
+const userContext: VWOUserContext = { id: 'unique_user_id', customVariables: { age: 25, location: 'US' } };
 ```
 
 ### Basic Feature Flagging
@@ -134,15 +134,15 @@ The `getFlag` API provides a simple way to check if a feature is enabled for a s
 | Parameter    | Description                                                      | Required | Type   | Example              |
 | ------------ | ---------------------------------------------------------------- | -------- | ------ | -------------------- |
 | `featureKey` | Unique identifier of the feature flag                            | Yes      | String | `'new_checkout'`     |
-| `context`    | Object containing user identification and contextual information | Yes      | VWOContext | `{ id: 'unique_user_id', customVariables: {key_1: 0, key_2: 1} }` |
+| `context`    | Object containing user identification and contextual information | Yes      | VWOUserContext | `{ id: 'unique_user_id', customVariables: {key_1: 0, key_2: 1} }` |
 
 
 Example usage:
 
 ```javascript
-import {  VWOContext, GetFlagResult } from 'vwo-fme-react-native-sdk/src/types';
+import {  VWOUserContext, GetFlagResult } from 'vwo-fme-react-native-sdk/src/types';
 
-const userContext: VWOContext = { id: 'unique_user_id', customVariables: {key_1: 0, key_2: 1} };
+const userContext: VWOUserContext = { id: 'unique_user_id', customVariables: {key_1: 0, key_2: 1} };
 
 // get feature flag
 const flagResult: GetFlagResult = await vwoClient.getFlag('new_checkout', userContext);
@@ -171,13 +171,13 @@ Feature flags can be enhanced with connected metrics to track key performance in
 | Parameter         | Description                                                            | Required | Type   | Example                |
 | ----------------- | ---------------------------------------------------------------------- | -------- | ------ | ---------------------- |
 | `eventName`       | Name of the event you want to track                                    | Yes      | String | `'purchase_completed'` |
-| `context`    | Object containing user identification and contextual information | Yes      | VWOContext | `{ id: 'unique_user_id' }` |
+| `context`    | Object containing user identification and contextual information | Yes      | VWOUserContext | `{ id: 'unique_user_id' }` |
 | `eventProperties` | Additional properties/metadata associated with the event               | No       | Object | `{ amount: 49.99 }`    |
 
 Example usage:
 
 ```javascript
-const userContext: VWOContext = { id: 'unique_user_id' };
+const userContext: VWOUserContext = { id: 'unique_user_id' };
 
 vwoClient.trackEvent('purchase_completed', userContext, { amount: 49.99 });
 ```
@@ -191,12 +191,12 @@ User attributes provide rich contextual information about users, enabling powerf
 | Parameter        | Description                                                            | Required | Type   | Example                        |
 | ---------------- | ---------------------------------------------------------------------- | -------- | ------ | ------------------------------ |
 | `attributes`     | An object containing key-value pairs of attributes to set              | Yes      | Object | `{ 'plan_type': 'premium', 'age': 30, 'isActive': true }`   |
-| `context`    | Object containing user identification and contextual information | Yes      | VWOContext | `{ id: 'unique_user_id' }` |
+| `context`    | Object containing user identification and contextual information | Yes      | VWOUserContext | `{ id: 'unique_user_id' }` |
 
 Example usage:
 
 ```javascript
-const userContext: VWOContext = { id: 'unique_user_id' };
+const userContext: VWOUserContext = { id: 'unique_user_id' };
 
 const attributes = { plan_type: 'premium', age: 25 };
 vwoClient.setAttribute(attributes, userContext);

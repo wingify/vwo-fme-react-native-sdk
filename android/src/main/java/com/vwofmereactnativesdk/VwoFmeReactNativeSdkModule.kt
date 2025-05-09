@@ -23,7 +23,7 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.*
 import com.vwo.VWO
-import com.vwo.models.user.VWOContext
+import com.vwo.models.user.VWOUserContext
 import com.vwo.models.user.VWOInitOptions
 import com.vwo.interfaces.IVwoInitCallback
 import com.vwo.interfaces.IVwoListener
@@ -55,6 +55,14 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
 
         val hasIntegrations = if (options.hasKey("integrations") && !options.isNull("integrations")) {
             options.getBoolean("integrations")
+        } else {
+            false
+        }
+
+        val vwoMetaData = options.getMap("vwoMeta")?.toHashMap() ?: HashMap<String, Any>()
+
+        val isUsageStatsDisabled = if (options.hasKey("isUsageStatsDisabled") && !options.isNull("isUsageStatsDisabled")) {
+            options.getBoolean("isUsageStatsDisabled")
         } else {
             false
         }
@@ -111,7 +119,7 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
         }
 
         val sdkName = "vwo-fme-react-native-sdk"
-        val sdkVersion = "1.6.1"
+        val sdkVersion = "1.7.0"
 
         val vwoOptions = VWOInitOptions().apply {
             this.sdkKey = sdkKey
@@ -125,6 +133,8 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
             this.sdkVersion = sdkVersion
             this.batchMinSize = batchMinSize
             this.batchUploadTimeInterval = batchUploadTimeInterval
+            this.isUsageStatsDisabled = isUsageStatsDisabled
+            this._vwo_meta = vwoMetaData
             if (hasIntegrations) {
                 this.integrations = object : IntegrationCallback {
                     override fun execute(properties: Map<String, Any>) {
@@ -159,11 +169,11 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
     // Retrieve a feature flag with the given context
     @ReactMethod
     fun getFlag(featureKey: String, context: ReadableMap, promise: Promise) {
-        val vwoContext = VWOContext().apply {
+        val vwoUserContext = VWOUserContext().apply {
             this.id = context.getString("id") ?: ""
             this.customVariables = context.getMap("customVariables")?.toHashMap() ?: HashMap<String, Any>()
         }
-        VWO.getFlag(featureKey, vwoContext, object : IVwoListener {
+        VWO.getFlag(featureKey, vwoUserContext, object : IVwoListener {
             override fun onSuccess(result: Any) {
                 if (result is GetFlag) {
                     promise.resolve(result.toWritableMap())
@@ -181,21 +191,21 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
     // Track an event with the given context and properties
     @ReactMethod
     fun trackEvent(eventName: String, context: ReadableMap, eventProperties: ReadableMap?) {
-        val vwoContext = VWOContext().apply {
+        val vwoUserContext = VWOUserContext().apply {
             this.id = context.getString("id") ?: ""
         }
         val properties = eventProperties?.toHashMap() ?: emptyMap<String, Any>()
-        VWO.trackEvent(eventName, vwoContext, properties)
+        VWO.trackEvent(eventName, vwoUserContext, properties)
     }
 
     // Set an attribute for the given context
     @ReactMethod
     fun setAttribute(attributes: ReadableMap, context: ReadableMap) {
-        val vwoContext = VWOContext().apply {
+        val vwoUserContext = VWOUserContext().apply {
             this.id = context.getString("id") ?: ""
         }
         val attributesMap = attributes.toHashMap()
-        VWO.setAttribute(attributesMap, vwoContext)
+        VWO.setAttribute(attributesMap, vwoUserContext)
     }
 
     // Sets the session data for the current FME session.

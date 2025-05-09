@@ -101,37 +101,34 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
           gatewayService = gateway
       }
 
+      var vwoMeta: [String: Any] = [:]
+      if let vwoMetaData = options["vwoMeta"] as? [String: Any] {
+          vwoMeta = vwoMetaData
+      }
+
+      var isUsageStatsDisabled: Bool = false
+      if let usageStatsValue = options["isUsageStatsDisabled"] as? Bool {
+          isUsageStatsDisabled = usageStatsValue
+      }
+
       var sdkName: String = "vwo-fme-react-native-sdk"
-      var sdkVersion: String = "1.6.1"
+      var sdkVersion: String = "1.7.0"
 
       let vwoOptions: VWOInitOptions
-      if hasIntegrations {
-          vwoOptions = VWOInitOptions(sdkKey: sdkKey,
-                                      accountId: accountId,
-                                      logLevel: logLevel,
-                                      integrations: self,
-                                      gatewayService: gatewayService,
-                                      cachedSettingsExpiryTime: cachedSettingsExpiry,
-                                      pollInterval: pollInterval,
-                                      batchMinSize: batchMinSize,
-                                      batchUploadTimeInterval: batchUploadTimeInterval,
-                                      sdkName: sdkName,
-                                      sdkVersion: sdkVersion,
-                                      logTransport: self)
-      } else {
-          vwoOptions = VWOInitOptions(sdkKey: sdkKey,
-                                      accountId: accountId,
-                                      logLevel: logLevel,
-                                      gatewayService: gatewayService,
-                                      cachedSettingsExpiryTime: cachedSettingsExpiry,
-                                      pollInterval: pollInterval,
-                                      batchMinSize: batchMinSize,
-                                      batchUploadTimeInterval: batchUploadTimeInterval,
-                                      sdkName: sdkName,
-                                      sdkVersion: sdkVersion,
-                                      logTransport: self)
-
-      }
+      vwoOptions = VWOInitOptions(sdkKey: sdkKey,
+                                  accountId: accountId,
+                                  logLevel: logLevel,
+                                  integrations: hasIntegrations ? self : nil,
+                                  gatewayService: gatewayService,
+                                  cachedSettingsExpiryTime: cachedSettingsExpiry,
+                                  pollInterval: pollInterval,
+                                  batchMinSize: batchMinSize,
+                                  batchUploadTimeInterval: batchUploadTimeInterval,
+                                  sdkName: sdkName,
+                                  sdkVersion: sdkVersion,
+                                  logTransport: self,
+                                  isUsageStatsDisabled: isUsageStatsDisabled,
+                                  vwoMeta: vwoMeta)
 
     VWOFme.initialize(options: vwoOptions) { result in
       switch result {
@@ -146,9 +143,9 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
   // Retrieve a feature flag with the given context
   @objc
   func getFlag(_ featureKey: String, context: NSDictionary, resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
-      let vwoContext = VWOContext(id: context["id"] as? String, customVariables: context["customVariables"] as? [String: Any] ?? [:])
+      let vwoUserContext = VWOUserContext(id: context["id"] as? String, customVariables: context["customVariables"] as? [String: Any] ?? [:])
 
-      VWOFme.getFlag(featureKey: featureKey, context: vwoContext) { flag in
+      VWOFme.getFlag(featureKey: featureKey, context: vwoUserContext) { flag in
 
         let flagResult: [String: Any] = [
             "isEnabled": flag.isEnabled(),
@@ -161,15 +158,15 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
   // Track an event with the given context and properties
   @objc
   func trackEvent(_ eventName: String, context: NSDictionary, eventProperties: NSDictionary) {
-      let vwoContext = VWOContext(id: context["id"] as? String, customVariables: context["customVariables"] as? [String: Any] ?? [:])
-      VWOFme.trackEvent(eventName: eventName, context: vwoContext, eventProperties: eventProperties as? [String: Any])
+      let vwoUserContext = VWOUserContext(id: context["id"] as? String, customVariables: context["customVariables"] as? [String: Any] ?? [:])
+      VWOFme.trackEvent(eventName: eventName, context: vwoUserContext, eventProperties: eventProperties as? [String: Any])
   }
 
   // Set an attribute for the given context
   @objc
   func setAttribute(_ attributes: NSDictionary, context: NSDictionary) {
-      let vwoContext = VWOContext(id: context["id"] as? String, customVariables: context["customVariables"] as? [String: Any] ?? [:])
-      VWOFme.setAttribute(attributes: attributes as? [String: Any] ?? [:], context: vwoContext)
+      let vwoUserContext = VWOUserContext(id: context["id"] as? String, customVariables: context["customVariables"] as? [String: Any] ?? [:])
+      VWOFme.setAttribute(attributes: attributes as? [String: Any] ?? [:], context: vwoUserContext)
   }
 
   // Sets the session data for the current FME session.
