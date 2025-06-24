@@ -1,6 +1,7 @@
 # VWO Feature Management and Experimentation SDK for React Native
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+[![npm version](https://img.shields.io/npm/v/vwo-fme-react-native-sdk?style=for-the-badge&color=green&logo=npm)](https://www.npmjs.com/package/vwo-fme-react-native-sdk)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=for-the-badge)](http://www.apache.org/licenses/LICENSE-2.0)
 
 ## Overview
 
