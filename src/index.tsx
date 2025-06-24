@@ -52,6 +52,7 @@ const logListener = myModuleEmitter.addListener('LogEvent', (event) => {
       break;
     default:
       console.log(message);
+      break;
   }
 });
 
