@@ -37,23 +37,23 @@ const VwoFmeReactNativeSdk = NativeModules.VwoFmeReactNativeSdk
 // Create an event emitter for the native module to handle events from the native side.
 const myModuleEmitter = new NativeEventEmitter(VwoFmeReactNativeSdk);
 const logListener = myModuleEmitter.addListener('LogEvent', (event) => {
-  const { message, type } = event;
-  switch (type) {
-    case 'INFO':
-    case 'DEBUG':
-    case 'TRACE':
-      console.log(message);
-      break;
-    case 'WARN':
-      console.warn(message);
-      break;
-    case 'ERROR':
-      console.error(message);
-      break;
-    default:
-      console.log(message);
-      break;
-  }
+    const { message, type } = event;
+    switch (type) {
+      case 'INFO':
+      case 'DEBUG':
+      case 'TRACE':
+        console.log(message);
+        break;
+      case 'WARN':
+        console.warn(message);
+        break;
+      case 'ERROR':
+        console.error(message);
+        break;
+      default:
+        console.log(message);
+        break;
+    }
 });
 
 // VWO interface to interact with the native module
@@ -77,6 +77,8 @@ interface VWOBridgeInterface {
   ): Promise<any>;
 
   setSessionData(data: { [key: string]: any }): void;
+
+  sendSdkInitTime(initTimeMs: number): void;
 }
 
 // Determine the platform (iOS or Android) to handle platform-specific logic.
@@ -86,6 +88,7 @@ interface VWOBridgeInterface {
 // Initialize the SDK with the provided options
 export async function init(options: VWOInitOptions): Promise<any> {
   try {
+    const startTime = Date.now();
     const vwoInstance = new VWO();
     // Update vwoMeta to include React Native version for usage statistics
     const updatedOptions = {
@@ -96,6 +99,8 @@ export async function init(options: VWOInitOptions): Promise<any> {
       },
     };
     await VWONative.initialize(updatedOptions);
+    const initTime = Date.now() - startTime;
+    VWONative.sendSdkInitTime(initTime);
     return vwoInstance;
   } catch (error) {
     console.error('Failed to initialize VWO:', error);
