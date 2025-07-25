@@ -1,6 +1,6 @@
 {
   "name": "vwo-fme-react-native-sdk",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "description": "VWO react native SDK for Feature Management and Experimentation",
   "source": "./src/index.tsx",
   "main": "./lib/commonjs/index.js",
