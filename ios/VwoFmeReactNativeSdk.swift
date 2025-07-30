@@ -65,6 +65,8 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
       return
     }
 
+       let sdkStartTime = Date().currentTimeMillis()
+
       let hasIntegrations = options["integrations"] != nil
 
       let logLevel: LogLevelEnum
@@ -133,6 +135,9 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
     VWOFme.initialize(options: vwoOptions) { result in
       switch result {
       case .success(let message):
+              let sdkEndTime = Date().currentTimeMillis()
+              let sdkInitTime = sdkEndTime - sdkStartTime
+               VWOFme.sendSdkInitEvent(sdkInitTime: sdkInitTime)
         resolver(message)
       case .failure(let error):
         rejecter("E_INITIALIZATION_FAILED", error.localizedDescription, nil)
@@ -178,4 +183,10 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
   override static func requiresMainQueueSetup() -> Bool {
     return false
   }
+}
+
+extension Date {
+    func currentTimeMillis() -> Int64 {
+        return Int64((self.timeIntervalSince1970) * 1000)
+    }
 }
