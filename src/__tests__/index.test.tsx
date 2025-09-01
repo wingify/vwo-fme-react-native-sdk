@@ -32,6 +32,7 @@ jest.mock('react-native', () => {
         trackEvent: jest.fn(),
         setAttribute: jest.fn(),
         setSessionData: jest.fn(),
+        sendSdkInitTime: jest.fn(),
       },
     },
     NativeEventEmitter: jest.fn().mockImplementation(() => ({

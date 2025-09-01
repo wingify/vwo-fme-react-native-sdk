@@ -7,17 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.8.0] - 2025-09-01
 
+### Added
+
+- Added support for sending a one-time SDK initialization event to VWO server as part of health-check milestones.
+- Added unit tests for better code stability.
+
 ### Changed
 
 - Updated SDK's usage data upload logic to aggregate in single account
 
-### Added
-
-- Added unit tests for better code stability.
-
 ## [1.7.3] - 2025-07-25
 
 ### Added
+
 - Upgraded native Android dependency to v1.6.4 and IOS dependency to v1.8.2 . This update added the SDK name and version in the events and batching call to VWO as query parameters.
 
 ## [1.7.2] - 2025-07-24

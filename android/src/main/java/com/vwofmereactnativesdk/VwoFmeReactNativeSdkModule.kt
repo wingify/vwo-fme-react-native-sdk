@@ -119,7 +119,7 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
         }
 
         val sdkName = "vwo-fme-react-native-sdk"
-        val sdkVersion = "1.7.4"
+        val sdkVersion = "1.8.0"
 
         val vwoOptions = VWOInitOptions().apply {
             this.sdkKey = sdkKey
@@ -278,7 +278,7 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
                     is Map<*, *> -> variableMap.putMap("value", mapToWritableMap(value))
                     is List<*> -> variableMap.putArray("value", listToWritableArray(value))
                     else -> variableMap.putString("value", value.toString())
-                }          
+                }
             } else {
                 when (value) {
                     is String -> variableMap.putString("value", value)
