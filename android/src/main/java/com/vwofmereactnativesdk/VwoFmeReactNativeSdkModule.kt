@@ -220,6 +220,13 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
         FMEConfig.setSessionData(sessionData)
     }
 
+    // Send SDK initialization time to native SDK
+    @ReactMethod
+    fun sendSdkInitTime(initTimeMs: Double) {
+        val initTimeLong = initTimeMs.toLong()
+        VWO.sendSdkInitEvent(initTimeLong)
+    }
+
     fun ReadableMap.toHashMap(): HashMap<String, Any> {
         val map = HashMap<String, Any>()
         val iterator = this.keySetIterator()
