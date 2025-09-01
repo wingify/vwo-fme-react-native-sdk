@@ -48,6 +48,9 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
   // Initialize the SDK with provided options
   @ReactMethod
     fun initialize(options: ReadableMap, promise: Promise) {
+
+        val initStartTime = DateTime.now().millisecondsSinceEpoch;
+
         val sdkKey = options.getString("sdkKey") ?: ""
         val accountId = options.getInt("accountId") ?: 0
 
@@ -157,6 +160,11 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
         }
         VWO.init(vwoOptions, object : IVwoInitCallback {
             override fun vwoInitSuccess(vwo: VWO, message: String) {
+
+                val initEndTime = DateTime.now().millisecondsSinceEpoch;
+                val sdkInitTime = initEndTime - initStartTime;
+                vwo?.sendSdkInitEvent(sdkInitTime);
+                
                 promise.resolve(message)
             }
 

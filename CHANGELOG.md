@@ -8,8 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.8.0] - 2025-09-01
 
 ### Added
-
 - Added support for sending a one-time SDK initialization event to VWO server as part of health-check milestones.
+- Update UserAgent to support Device Type.
 - Added unit tests for better code stability.
 
 ### Changed
