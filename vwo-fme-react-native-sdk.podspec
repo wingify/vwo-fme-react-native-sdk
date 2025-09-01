@@ -16,7 +16,7 @@ Pod::Spec.new do |s|
 
   s.source_files = "ios/**/*.{h,m,mm,swift}"
 
-  s.dependency "VWO-FME","1.8.3"
+  s.dependency "VWO-FME","1.9.1"
   s.public_header_files = 'VWO-FME/**/*.h'
 
   # Use install_modules_dependencies helper to install the dependencies if React Native version >=0.71.0.
