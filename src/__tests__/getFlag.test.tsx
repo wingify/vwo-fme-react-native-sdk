@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
+import { NativeModules } from 'react-native';
 import { VWO } from '../index';
-import type { VWOUserContext, GetFlagResult } from '../types';
+import type { VWOUserContext } from '../types';
 
 // Mock React Native modules
 jest.mock('react-native', () => {
   const mockAddListener = jest.fn();
   const mockRemove = jest.fn();
-  
+
   return {
     NativeModules: {
       VwoFmeReactNativeSdk: {
@@ -139,9 +139,7 @@ describe('GetFlag Functionality Tests', () => {
       const mockArray = ['item1', 'item2', 'item3'];
       const mockFlagData = {
         isEnabled: true,
-        variables: [
-          { key: 'items', value: mockArray, type: 'array', id: 1 },
-        ],
+        variables: [{ key: 'items', value: mockArray, type: 'array', id: 1 }],
       };
 
       mockNativeModule.getFlag.mockResolvedValue(mockFlagData);
@@ -172,9 +170,7 @@ describe('GetFlag Functionality Tests', () => {
     it('should return disabled flag with variables (edge case)', async () => {
       const mockFlagData = {
         isEnabled: false,
-        variables: [
-          { key: 'color', value: 'red', type: 'string', id: 1 },
-        ],
+        variables: [{ key: 'color', value: 'red', type: 'string', id: 1 }],
       };
 
       mockNativeModule.getFlag.mockResolvedValue(mockFlagData);
@@ -190,9 +186,7 @@ describe('GetFlag Functionality Tests', () => {
     it('should return default value for non-existent variables', async () => {
       const mockFlagData = {
         isEnabled: true,
-        variables: [
-          { key: 'existing', value: 'value', type: 'string', id: 1 },
-        ],
+        variables: [{ key: 'existing', value: 'value', type: 'string', id: 1 }],
       };
 
       mockNativeModule.getFlag.mockResolvedValue(mockFlagData);
@@ -258,10 +252,25 @@ describe('GetFlag Functionality Tests', () => {
       const mockFlagData = {
         isEnabled: true,
         variables: [
-          { key: 'key-with-dashes', value: 'dash-value', type: 'string', id: 1 },
-          { key: 'key_with_underscores', value: 'underscore-value', type: 'string', id: 2 },
+          {
+            key: 'key-with-dashes',
+            value: 'dash-value',
+            type: 'string',
+            id: 1,
+          },
+          {
+            key: 'key_with_underscores',
+            value: 'underscore-value',
+            type: 'string',
+            id: 2,
+          },
           { key: 'key.with.dots', value: 'dot-value', type: 'string', id: 3 },
-          { key: 'key with spaces', value: 'space-value', type: 'string', id: 4 },
+          {
+            key: 'key with spaces',
+            value: 'space-value',
+            type: 'string',
+            id: 4,
+          },
         ],
       };
 
@@ -269,10 +278,16 @@ describe('GetFlag Functionality Tests', () => {
 
       const result = await vwoInstance.getFlag('test-feature', mockUserContext);
 
-      expect(result.getVariable('key-with-dashes', 'default')).toBe('dash-value');
-      expect(result.getVariable('key_with_underscores', 'default')).toBe('underscore-value');
+      expect(result.getVariable('key-with-dashes', 'default')).toBe(
+        'dash-value'
+      );
+      expect(result.getVariable('key_with_underscores', 'default')).toBe(
+        'underscore-value'
+      );
       expect(result.getVariable('key.with.dots', 'default')).toBe('dot-value');
-      expect(result.getVariable('key with spaces', 'default')).toBe('space-value');
+      expect(result.getVariable('key with spaces', 'default')).toBe(
+        'space-value'
+      );
     });
   });
 
@@ -353,9 +368,15 @@ describe('GetFlag Functionality Tests', () => {
 
       mockNativeModule.getFlag.mockResolvedValue(mockFlagData);
 
-      const result = await vwoInstance.getFlag('test-feature', contextWithCustomVars);
+      const result = await vwoInstance.getFlag(
+        'test-feature',
+        contextWithCustomVars
+      );
 
-      expect(mockNativeModule.getFlag).toHaveBeenCalledWith('test-feature', contextWithCustomVars);
+      expect(mockNativeModule.getFlag).toHaveBeenCalledWith(
+        'test-feature',
+        contextWithCustomVars
+      );
       expect(result.isEnabled()).toBe(true);
     });
 
@@ -371,7 +392,10 @@ describe('GetFlag Functionality Tests', () => {
 
       const result = await vwoInstance.getFlag('test-feature', emptyContext);
 
-      expect(mockNativeModule.getFlag).toHaveBeenCalledWith('test-feature', emptyContext);
+      expect(mockNativeModule.getFlag).toHaveBeenCalledWith(
+        'test-feature',
+        emptyContext
+      );
       expect(result.isEnabled()).toBe(false);
     });
 
@@ -387,9 +411,15 @@ describe('GetFlag Functionality Tests', () => {
 
       mockNativeModule.getFlag.mockResolvedValue(mockFlagData);
 
-      const result = await vwoInstance.getFlag('test-feature', contextWithIdOnly);
+      const result = await vwoInstance.getFlag(
+        'test-feature',
+        contextWithIdOnly
+      );
 
-      expect(mockNativeModule.getFlag).toHaveBeenCalledWith('test-feature', contextWithIdOnly);
+      expect(mockNativeModule.getFlag).toHaveBeenCalledWith(
+        'test-feature',
+        contextWithIdOnly
+      );
       expect(result.isEnabled()).toBe(true);
     });
   });
@@ -416,7 +446,10 @@ describe('GetFlag Functionality Tests', () => {
 
       for (const featureKey of featureKeys) {
         await vwoInstance.getFlag(featureKey, mockUserContext);
-        expect(mockNativeModule.getFlag).toHaveBeenCalledWith(featureKey, mockUserContext);
+        expect(mockNativeModule.getFlag).toHaveBeenCalledWith(
+          featureKey,
+          mockUserContext
+        );
       }
     });
 
@@ -430,7 +463,10 @@ describe('GetFlag Functionality Tests', () => {
 
       const result = await vwoInstance.getFlag('', mockUserContext);
 
-      expect(mockNativeModule.getFlag).toHaveBeenCalledWith('', mockUserContext);
+      expect(mockNativeModule.getFlag).toHaveBeenCalledWith(
+        '',
+        mockUserContext
+      );
       expect(result.isEnabled()).toBe(false);
     });
   });
@@ -442,8 +478,13 @@ describe('GetFlag Functionality Tests', () => {
 
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      await expect(vwoInstance.getFlag('test-feature', mockUserContext)).rejects.toThrow('Native module error');
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to get feature flag:', error);
+      await expect(
+        vwoInstance.getFlag('test-feature', mockUserContext)
+      ).rejects.toThrow('Native module error');
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to get feature flag:',
+        error
+      );
 
       consoleSpy.mockRestore();
     });
@@ -462,8 +503,6 @@ describe('GetFlag Functionality Tests', () => {
       expect(result.isEnabled()).toBe('not-a-boolean');
       expect(result.getVariables()).toBe('not-an-array');
     });
-
-
   });
 
   describe('Performance and edge cases', () => {
@@ -506,7 +545,7 @@ describe('GetFlag Functionality Tests', () => {
       const results = await Promise.all(promises);
 
       expect(results).toHaveLength(3);
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result.isEnabled()).toBe(true);
         expect(result.getVariable('test', 'default')).toBe('value');
       });

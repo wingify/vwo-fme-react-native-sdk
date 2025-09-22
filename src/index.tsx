@@ -37,23 +37,23 @@ const VwoFmeReactNativeSdk = NativeModules.VwoFmeReactNativeSdk
 // Create an event emitter for the native module to handle events from the native side.
 const myModuleEmitter = new NativeEventEmitter(VwoFmeReactNativeSdk);
 const logListener = myModuleEmitter.addListener('LogEvent', (event) => {
-    const { message, type } = event;
-    switch (type) {
-      case 'INFO':
-      case 'DEBUG':
-      case 'TRACE':
-        console.log(message);
-        break;
-      case 'WARN':
-        console.warn(message);
-        break;
-      case 'ERROR':
-        console.error(message);
-        break;
-      default:
-        console.log(message);
-        break;
-    }
+  const { message, type } = event;
+  switch (type) {
+    case 'INFO':
+    case 'DEBUG':
+    case 'TRACE':
+      console.log(message);
+      break;
+    case 'WARN':
+      console.warn(message);
+      break;
+    case 'ERROR':
+      console.error(message);
+      break;
+    default:
+      console.log(message);
+      break;
+  }
 });
 
 // VWO interface to interact with the native module

@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
+import { NativeModules } from 'react-native';
 import { VWO } from '../index';
 
 // Mock React Native modules
 jest.mock('react-native', () => {
   const mockAddListener = jest.fn();
   const mockRemove = jest.fn();
-  
+
   return {
     NativeModules: {
       VwoFmeReactNativeSdk: {
@@ -225,7 +225,7 @@ describe('SetSessionData Functionality Tests', () => {
     it('should handle empty string keys', () => {
       const sessionData = {
         '': 'empty-key-value',
-        normalKey: 'normal-value',
+        'normalKey': 'normal-value',
       };
 
       vwoInstance.setSessionData(sessionData);
@@ -269,7 +269,7 @@ describe('SetSessionData Functionality Tests', () => {
         () => 'function',
       ];
 
-      nonObjectData.forEach(data => {
+      nonObjectData.forEach((data) => {
         vwoInstance.setSessionData(data as any);
         expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(data);
       });
@@ -288,7 +288,9 @@ describe('SetSessionData Functionality Tests', () => {
 
       vwoInstance.setSessionData(largeSessionData);
 
-      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(largeSessionData);
+      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(
+        largeSessionData
+      );
     });
 
     it('should handle concurrent setSessionData calls', () => {
@@ -298,13 +300,16 @@ describe('SetSessionData Functionality Tests', () => {
         { sessionId: 'session3', data: 'value3' },
       ];
 
-      sessionDataSets.forEach(data => {
+      sessionDataSets.forEach((data) => {
         vwoInstance.setSessionData(data);
       });
 
       expect(mockNativeModule.setSessionData).toHaveBeenCalledTimes(3);
       sessionDataSets.forEach((data, index) => {
-        expect(mockNativeModule.setSessionData).toHaveBeenNthCalledWith(index + 1, data);
+        expect(mockNativeModule.setSessionData).toHaveBeenNthCalledWith(
+          index + 1,
+          data
+        );
       });
     });
 
@@ -361,7 +366,9 @@ describe('SetSessionData Functionality Tests', () => {
 
       vwoInstance.setSessionData(userSessionData);
 
-      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(userSessionData);
+      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(
+        userSessionData
+      );
     });
 
     it('should set e-commerce session data', () => {
@@ -389,7 +396,9 @@ describe('SetSessionData Functionality Tests', () => {
 
       vwoInstance.setSessionData(ecommerceSessionData);
 
-      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(ecommerceSessionData);
+      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(
+        ecommerceSessionData
+      );
     });
 
     it('should set app usage session data', () => {
@@ -419,28 +428,30 @@ describe('SetSessionData Functionality Tests', () => {
 
       vwoInstance.setSessionData(appUsageSessionData);
 
-      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(appUsageSessionData);
+      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(
+        appUsageSessionData
+      );
     });
 
     it('should set A/B testing session data', () => {
       const abTestingSessionData = {
         sessionId: 'session_123',
         experiments: {
-          'exp_123': {
+          exp_123: {
             variation: 'var_a',
             isControl: false,
             exposureTime: Date.now(),
             goals: {
-              'goal_1': { count: 2, value: 100.00 },
-              'goal_2': { count: 1, value: 50.00 },
+              goal_1: { count: 2, value: 100.0 },
+              goal_2: { count: 1, value: 50.0 },
             },
           },
-          'exp_456': {
+          exp_456: {
             variation: 'var_b',
             isControl: true,
             exposureTime: Date.now(),
             goals: {
-              'goal_1': { count: 1, value: 75.00 },
+              goal_1: { count: 1, value: 75.0 },
             },
           },
         },
@@ -459,7 +470,9 @@ describe('SetSessionData Functionality Tests', () => {
 
       vwoInstance.setSessionData(abTestingSessionData);
 
-      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(abTestingSessionData);
+      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(
+        abTestingSessionData
+      );
     });
   });
 
@@ -538,7 +551,9 @@ describe('SetSessionData Functionality Tests', () => {
 
       vwoInstance.setSessionData(comprehensiveSessionData);
 
-      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(comprehensiveSessionData);
+      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(
+        comprehensiveSessionData
+      );
     });
   });
 
@@ -561,7 +576,9 @@ describe('SetSessionData Functionality Tests', () => {
 
       vwoInstance.setSessionData(sessionStartData);
 
-      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(sessionStartData);
+      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(
+        sessionStartData
+      );
     });
 
     it('should handle session update data', () => {
@@ -575,7 +592,9 @@ describe('SetSessionData Functionality Tests', () => {
 
       vwoInstance.setSessionData(sessionUpdateData);
 
-      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(sessionUpdateData);
+      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(
+        sessionUpdateData
+      );
     });
 
     it('should handle session end data', () => {
@@ -598,8 +617,9 @@ describe('SetSessionData Functionality Tests', () => {
 
       vwoInstance.setSessionData(sessionEndData);
 
-      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(sessionEndData);
+      expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(
+        sessionEndData
+      );
     });
   });
 });
-

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
+import { NativeModules } from 'react-native';
 import { VWO } from '../index';
 import type { VWOUserContext } from '../types';
 
@@ -22,7 +22,7 @@ import type { VWOUserContext } from '../types';
 jest.mock('react-native', () => {
   const mockAddListener = jest.fn();
   const mockRemove = jest.fn();
-  
+
   return {
     NativeModules: {
       VwoFmeReactNativeSdk: {
@@ -69,7 +69,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(eventName, context);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, context, undefined);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        eventName,
+        context,
+        undefined
+      );
     });
 
     it('should track event with event properties', () => {
@@ -83,7 +87,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(eventName, context, eventProperties);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, context, eventProperties);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        eventName,
+        context,
+        eventProperties
+      );
     });
 
     it('should track event without user context', () => {
@@ -92,7 +100,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(eventName, emptyContext);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, emptyContext, undefined);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        eventName,
+        emptyContext,
+        undefined
+      );
     });
   });
 
@@ -110,25 +122,39 @@ describe('TrackEvent Functionality Tests', () => {
         'event_with_123_numbers',
       ];
 
-      eventNames.forEach(eventName => {
+      eventNames.forEach((eventName) => {
         vwoInstance.trackEvent(eventName, mockUserContext);
-        expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, mockUserContext, undefined);
+        expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+          eventName,
+          mockUserContext,
+          undefined
+        );
       });
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledTimes(eventNames.length);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledTimes(
+        eventNames.length
+      );
     });
 
     it('should handle empty event name', () => {
       vwoInstance.trackEvent('', mockUserContext);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith('', mockUserContext, undefined);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        '',
+        mockUserContext,
+        undefined
+      );
     });
 
     it('should handle very long event names', () => {
       const longEventName = 'a'.repeat(1000);
       vwoInstance.trackEvent(longEventName, mockUserContext);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(longEventName, mockUserContext, undefined);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        longEventName,
+        mockUserContext,
+        undefined
+      );
     });
   });
 
@@ -143,7 +169,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(eventName, mockUserContext, eventProperties);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, mockUserContext, eventProperties);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        eventName,
+        mockUserContext,
+        eventProperties
+      );
     });
 
     it('should handle numeric properties', () => {
@@ -157,7 +187,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(eventName, mockUserContext, eventProperties);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, mockUserContext, eventProperties);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        eventName,
+        mockUserContext,
+        eventProperties
+      );
     });
 
     it('should handle boolean properties', () => {
@@ -170,7 +204,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(eventName, mockUserContext, eventProperties);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, mockUserContext, eventProperties);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        eventName,
+        mockUserContext,
+        eventProperties
+      );
     });
 
     it('should handle null and undefined properties', () => {
@@ -184,7 +222,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(eventName, mockUserContext, eventProperties);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, mockUserContext, eventProperties);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        eventName,
+        mockUserContext,
+        eventProperties
+      );
     });
 
     it('should handle array properties', () => {
@@ -198,7 +240,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(eventName, mockUserContext, eventProperties);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, mockUserContext, eventProperties);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        eventName,
+        mockUserContext,
+        eventProperties
+      );
     });
 
     it('should handle nested object properties', () => {
@@ -219,7 +265,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(eventName, mockUserContext, eventProperties);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, mockUserContext, eventProperties);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        eventName,
+        mockUserContext,
+        eventProperties
+      );
     });
 
     it('should handle deeply nested objects', () => {
@@ -240,7 +290,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(eventName, mockUserContext, eventProperties);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, mockUserContext, eventProperties);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        eventName,
+        mockUserContext,
+        eventProperties
+      );
     });
   });
 
@@ -259,7 +313,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(eventName, contextWithCustomVars);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, contextWithCustomVars, undefined);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        eventName,
+        contextWithCustomVars,
+        undefined
+      );
     });
 
     it('should work with user context containing only ID', () => {
@@ -270,7 +328,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(eventName, contextWithIdOnly);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, contextWithIdOnly, undefined);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        eventName,
+        contextWithIdOnly,
+        undefined
+      );
     });
 
     it('should work with empty user context', () => {
@@ -279,7 +341,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(eventName, emptyContext);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, emptyContext, undefined);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        eventName,
+        emptyContext,
+        undefined
+      );
     });
 
     it('should work with user context containing special characters', () => {
@@ -296,7 +362,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(eventName, contextWithSpecialChars);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, contextWithSpecialChars, undefined);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        eventName,
+        contextWithSpecialChars,
+        undefined
+      );
     });
   });
 
@@ -323,7 +393,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(null as any, mockUserContext);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(null, mockUserContext, undefined);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        null,
+        mockUserContext,
+        undefined
+      );
 
       consoleSpy.mockRestore();
     });
@@ -333,7 +407,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(undefined as any, mockUserContext);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(undefined, mockUserContext, undefined);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        undefined,
+        mockUserContext,
+        undefined
+      );
 
       consoleSpy.mockRestore();
     });
@@ -343,7 +421,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent('test_event', null as any);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith('test_event', null, undefined);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        'test_event',
+        null,
+        undefined
+      );
 
       consoleSpy.mockRestore();
     });
@@ -353,7 +435,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent('test_event', undefined as any);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith('test_event', undefined, undefined);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        'test_event',
+        undefined,
+        undefined
+      );
 
       consoleSpy.mockRestore();
     });
@@ -371,7 +457,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(eventName, mockUserContext, largeProperties);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, mockUserContext, largeProperties);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        eventName,
+        mockUserContext,
+        largeProperties
+      );
     });
 
     it('should handle concurrent event tracking', () => {
@@ -381,7 +471,7 @@ describe('TrackEvent Functionality Tests', () => {
         { name: 'event3', context: { id: 'user3' } },
       ];
 
-      events.forEach(event => {
+      events.forEach((event) => {
         vwoInstance.trackEvent(event.name, event.context);
       });
 
@@ -409,7 +499,11 @@ describe('TrackEvent Functionality Tests', () => {
       // This should not cause infinite recursion
       vwoInstance.trackEvent(eventName, mockUserContext, eventProperties);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, mockUserContext, eventProperties);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        eventName,
+        mockUserContext,
+        eventProperties
+      );
     });
 
     it('should handle functions in event properties', () => {
@@ -422,7 +516,11 @@ describe('TrackEvent Functionality Tests', () => {
 
       vwoInstance.trackEvent(eventName, mockUserContext, eventProperties);
 
-      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, mockUserContext, eventProperties);
+      expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+        eventName,
+        mockUserContext,
+        eventProperties
+      );
     });
   });
 
@@ -455,14 +553,12 @@ describe('TrackEvent Functionality Tests', () => {
             total: 199.98,
             currency: 'USD',
             paymentMethod: 'credit_card',
-            items: [
-              { productId: 'prod_123', quantity: 2, price: 99.99 },
-            ],
+            items: [{ productId: 'prod_123', quantity: 2, price: 99.99 }],
           },
         },
       ];
 
-      ecommerceEvents.forEach(event => {
+      ecommerceEvents.forEach((event) => {
         vwoInstance.trackEvent(event.name, mockUserContext, event.properties);
       });
 
@@ -496,7 +592,7 @@ describe('TrackEvent Functionality Tests', () => {
         },
       ];
 
-      engagementEvents.forEach(event => {
+      engagementEvents.forEach((event) => {
         vwoInstance.trackEvent(event.name, mockUserContext, event.properties);
       });
 
@@ -524,7 +620,7 @@ describe('TrackEvent Functionality Tests', () => {
         },
       ];
 
-      abTestingEvents.forEach(event => {
+      abTestingEvents.forEach((event) => {
         vwoInstance.trackEvent(event.name, mockUserContext, event.properties);
       });
 
@@ -532,4 +628,3 @@ describe('TrackEvent Functionality Tests', () => {
     });
   });
 });
-

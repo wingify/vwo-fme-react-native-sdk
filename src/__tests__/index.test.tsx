@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
+import { NativeModules, NativeEventEmitter } from 'react-native';
 import { init, VWO } from '../index';
 import { LogLevel } from '../types';
-import type { VWOInitOptions, VWOUserContext, GetFlagResult } from '../types';
+import type { VWOInitOptions, VWOUserContext } from '../types';
 
 // Mock React Native modules
 jest.mock('react-native', () => {
   const mockAddListener = jest.fn();
   const mockRemove = jest.fn();
-  
+
   return {
     NativeModules: {
       VwoFmeReactNativeSdk: {
@@ -55,16 +55,16 @@ jest.mock('react-native', () => {
 describe('VWO FME React Native SDK', () => {
   let mockNativeModule: any;
   let mockAddListener: jest.Mock;
-  let mockRemove: jest.Mock;
+  // let mockRemove: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockNativeModule = NativeModules.VwoFmeReactNativeSdk;
-    
+
     // Create fresh mock functions for each test
     mockAddListener = jest.fn().mockReturnValue({ remove: jest.fn() });
-    mockRemove = jest.fn();
-    
+    // mockRemove = jest.fn();
+
     // Reset and update the NativeEventEmitter mock
     const NativeEventEmitterMock = NativeEventEmitter as jest.Mock;
     NativeEventEmitterMock.mockClear();
@@ -130,7 +130,10 @@ describe('VWO FME React Native SDK', () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
       await expect(init(mockOptions)).rejects.toThrow('Initialization failed');
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to initialize VWO:', error);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to initialize VWO:',
+        error
+      );
 
       consoleSpy.mockRestore();
     });
@@ -159,7 +162,10 @@ describe('VWO FME React Native SDK', () => {
 
         const result = await vwoInstance.getFlag(featureKey, context);
 
-        expect(mockNativeModule.getFlag).toHaveBeenCalledWith(featureKey, context);
+        expect(mockNativeModule.getFlag).toHaveBeenCalledWith(
+          featureKey,
+          context
+        );
         expect(result.isEnabled()).toBe(true);
         expect(result.getVariable('var1', 'default')).toBe('value1');
         expect(result.getVariable('var2', 0)).toBe(42);
@@ -170,9 +176,7 @@ describe('VWO FME React Native SDK', () => {
       it('should handle undefined variable values', async () => {
         const mockFlagData = {
           isEnabled: false,
-          variables: [
-            { key: 'var1', value: undefined, type: 'string', id: 1 },
-          ],
+          variables: [{ key: 'var1', value: undefined, type: 'string', id: 1 }],
         };
 
         mockNativeModule.getFlag.mockResolvedValue(mockFlagData);
@@ -188,8 +192,13 @@ describe('VWO FME React Native SDK', () => {
 
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-        await expect(vwoInstance.getFlag('test', { id: 'user123' })).rejects.toThrow('Flag retrieval failed');
-        expect(consoleSpy).toHaveBeenCalledWith('Failed to get feature flag:', error);
+        await expect(
+          vwoInstance.getFlag('test', { id: 'user123' })
+        ).rejects.toThrow('Flag retrieval failed');
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'Failed to get feature flag:',
+          error
+        );
 
         consoleSpy.mockRestore();
       });
@@ -203,7 +212,11 @@ describe('VWO FME React Native SDK', () => {
 
         vwoInstance.trackEvent(eventName, context, eventProperties);
 
-        expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, context, eventProperties);
+        expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+          eventName,
+          context,
+          eventProperties
+        );
       });
 
       it('should track event without properties', () => {
@@ -212,7 +225,11 @@ describe('VWO FME React Native SDK', () => {
 
         vwoInstance.trackEvent(eventName, context);
 
-        expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(eventName, context, undefined);
+        expect(mockNativeModule.trackEvent).toHaveBeenCalledWith(
+          eventName,
+          context,
+          undefined
+        );
       });
 
       it('should handle trackEvent error', () => {
@@ -225,7 +242,10 @@ describe('VWO FME React Native SDK', () => {
 
         vwoInstance.trackEvent('test', { id: 'user123' });
 
-        expect(consoleSpy).toHaveBeenCalledWith('Failed to track event:', error);
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'Failed to track event:',
+          error
+        );
 
         consoleSpy.mockRestore();
       });
@@ -240,24 +260,30 @@ describe('VWO FME React Native SDK', () => {
 
         await vwoInstance.setAttribute(attributes, context);
 
-        expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, context);
+        expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+          attributes,
+          context
+        );
       });
 
-          it('should handle setAttribute error', async () => {
-      const error = new Error('Attribute setting failed');
-      mockNativeModule.setAttribute.mockImplementation(() => {
-        throw error;
+      it('should handle setAttribute error', async () => {
+        const error = new Error('Attribute setting failed');
+        mockNativeModule.setAttribute.mockImplementation(() => {
+          throw error;
+        });
+
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+        // The method should not throw, it should catch the error and log it
+        await vwoInstance.setAttribute({ test: 'value' }, { id: 'user123' });
+
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'Failed to set attribute:',
+          error
+        );
+
+        consoleSpy.mockRestore();
       });
-
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-
-      // The method should not throw, it should catch the error and log it
-      await vwoInstance.setAttribute({ test: 'value' }, { id: 'user123' });
-
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to set attribute:', error);
-
-      consoleSpy.mockRestore();
-    });
     });
 
     describe('setSessionData method', () => {
@@ -268,7 +294,9 @@ describe('VWO FME React Native SDK', () => {
 
         vwoInstance.setSessionData(sessionData);
 
-        expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(sessionData);
+        expect(mockNativeModule.setSessionData).toHaveBeenCalledWith(
+          sessionData
+        );
       });
     });
 

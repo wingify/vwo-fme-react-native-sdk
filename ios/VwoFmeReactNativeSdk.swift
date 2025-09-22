@@ -65,8 +65,6 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
       return
     }
 
-       let sdkStartTime = Date().currentTimeMillis()
-
       let hasIntegrations = options["integrations"] != nil
 
       let logLevel: LogLevelEnum
@@ -135,14 +133,18 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
     VWOFme.initialize(options: vwoOptions) { result in
       switch result {
       case .success(let message):
-              let sdkEndTime = Date().currentTimeMillis()
-              let sdkInitTime = sdkEndTime - sdkStartTime
-               VWOFme.sendSdkInitEvent(sdkInitTime: sdkInitTime)
+
         resolver(message)
       case .failure(let error):
         rejecter("E_INITIALIZATION_FAILED", error.localizedDescription, nil)
       }
     }
+  }
+
+  // Send SDK initialization time to native SDK
+  @objc
+  func sendSdkInitTime(_ initTimeMs: NSNumber) {
+    VWOFme.sendSdkInitEvent(sdkInitTime: initTimeMs.int64Value)
   }
 
   // Retrieve a feature flag with the given context

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
+import { NativeModules } from 'react-native';
 import { VWO } from '../index';
 import type { VWOUserContext } from '../types';
 
@@ -22,7 +22,7 @@ import type { VWOUserContext } from '../types';
 jest.mock('react-native', () => {
   const mockAddListener = jest.fn();
   const mockRemove = jest.fn();
-  
+
   return {
     NativeModules: {
       VwoFmeReactNativeSdk: {
@@ -74,7 +74,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        mockUserContext
+      );
     });
 
     it('should set numeric attributes', async () => {
@@ -90,7 +93,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        mockUserContext
+      );
     });
 
     it('should set boolean attributes', async () => {
@@ -104,7 +110,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        mockUserContext
+      );
     });
 
     it('should set empty attributes object', async () => {
@@ -114,7 +123,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        mockUserContext
+      );
     });
   });
 
@@ -131,7 +143,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        mockUserContext
+      );
     });
 
     it('should set object attributes', async () => {
@@ -152,7 +167,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        mockUserContext
+      );
     });
 
     it('should set deeply nested object attributes', async () => {
@@ -177,7 +195,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        mockUserContext
+      );
     });
 
     it('should set null and undefined attributes', async () => {
@@ -192,7 +213,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        mockUserContext
+      );
     });
   });
 
@@ -214,20 +238,26 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        mockUserContext
+      );
     });
 
     it('should handle empty string keys', async () => {
       const attributes = {
         '': 'empty-key-value',
-        normalKey: 'normal-value',
+        'normalKey': 'normal-value',
       };
 
       mockNativeModule.setAttribute.mockResolvedValue('success');
 
       await vwoInstance.setAttribute(attributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        mockUserContext
+      );
     });
 
     it('should handle special characters in keys', async () => {
@@ -241,7 +271,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        mockUserContext
+      );
     });
   });
 
@@ -261,7 +294,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, contextWithCustomVars);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, contextWithCustomVars);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        contextWithCustomVars
+      );
     });
 
     it('should work with user context containing only ID', async () => {
@@ -274,7 +310,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, contextWithIdOnly);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, contextWithIdOnly);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        contextWithIdOnly
+      );
     });
 
     it('should work with empty user context', async () => {
@@ -285,7 +324,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, emptyContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, emptyContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        emptyContext
+      );
     });
 
     it('should work with user context containing special characters', async () => {
@@ -304,7 +346,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, contextWithSpecialChars);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, contextWithSpecialChars);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        contextWithSpecialChars
+      );
     });
   });
 
@@ -319,7 +364,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute({ test: 'value' }, mockUserContext);
 
-      expect(consoleSpy).toHaveBeenCalledWith('Failed to set attribute:', error);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to set attribute:',
+        error
+      );
 
       consoleSpy.mockRestore();
     });
@@ -329,7 +377,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(null as any, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(null, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        null,
+        mockUserContext
+      );
 
       consoleSpy.mockRestore();
     });
@@ -339,7 +390,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(undefined as any, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(undefined, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        undefined,
+        mockUserContext
+      );
 
       consoleSpy.mockRestore();
     });
@@ -349,7 +403,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute({ test: 'value' }, null as any);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith({ test: 'value' }, null);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        { test: 'value' },
+        null
+      );
 
       consoleSpy.mockRestore();
     });
@@ -359,7 +416,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute({ test: 'value' }, undefined as any);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith({ test: 'value' }, undefined);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        { test: 'value' },
+        undefined
+      );
 
       consoleSpy.mockRestore();
     });
@@ -378,7 +438,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(largeAttributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(largeAttributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        largeAttributes,
+        mockUserContext
+      );
     });
 
     it('should handle concurrent setAttribute calls', async () => {
@@ -420,7 +483,10 @@ describe('SetAttribute Functionality Tests', () => {
       // This should not cause infinite recursion
       await vwoInstance.setAttribute(attributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        mockUserContext
+      );
     });
 
     it('should handle functions in attributes', async () => {
@@ -434,7 +500,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        mockUserContext
+      );
     });
   });
 
@@ -467,7 +536,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(userProfileAttributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(userProfileAttributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        userProfileAttributes,
+        mockUserContext
+      );
     });
 
     it('should set e-commerce attributes', async () => {
@@ -475,7 +547,7 @@ describe('SetAttribute Functionality Tests', () => {
         customer: {
           id: 'cust_123',
           tier: 'gold',
-          totalSpent: 1500.00,
+          totalSpent: 1500.0,
           lastPurchase: '2024-01-15',
         },
         cart: {
@@ -497,7 +569,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(ecommerceAttributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(ecommerceAttributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        ecommerceAttributes,
+        mockUserContext
+      );
     });
 
     it('should set app usage attributes', async () => {
@@ -531,27 +606,30 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(appUsageAttributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(appUsageAttributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        appUsageAttributes,
+        mockUserContext
+      );
     });
 
     it('should set A/B testing attributes', async () => {
       const abTestingAttributes = {
         experiments: {
-          'exp_123': {
+          exp_123: {
             variation: 'var_a',
             isControl: false,
             exposureTime: Date.now(),
           },
-          'exp_456': {
+          exp_456: {
             variation: 'var_b',
             isControl: true,
             exposureTime: Date.now(),
           },
         },
         goals: {
-          'goal_123': {
+          goal_123: {
             count: 5,
-            value: 250.00,
+            value: 250.0,
             lastAchieved: Date.now(),
           },
         },
@@ -566,7 +644,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(abTestingAttributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(abTestingAttributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        abTestingAttributes,
+        mockUserContext
+      );
     });
   });
 
@@ -582,7 +663,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        mockUserContext
+      );
     });
 
     it('should handle very deep nested objects', async () => {
@@ -602,7 +686,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        mockUserContext
+      );
     });
 
     it('should handle mixed data types in arrays', async () => {
@@ -623,7 +710,10 @@ describe('SetAttribute Functionality Tests', () => {
 
       await vwoInstance.setAttribute(attributes, mockUserContext);
 
-      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(attributes, mockUserContext);
+      expect(mockNativeModule.setAttribute).toHaveBeenCalledWith(
+        attributes,
+        mockUserContext
+      );
     });
   });
 });

@@ -15,12 +15,12 @@
  */
 
 import { LogLevel } from '../types';
-import type { 
-  VWOInitOptions, 
-  VWOUserContext, 
-  Variable, 
-  GetFlag, 
-  GetFlagResult 
+import type {
+  VWOInitOptions,
+  VWOUserContext,
+  Variable,
+  GetFlag,
+  GetFlagResult,
 } from '../types';
 
 describe('TypeScript Types and Interfaces', () => {
@@ -82,7 +82,9 @@ describe('TypeScript Types and Interfaces', () => {
       expect(options.logLevel).toBe(LogLevel.info);
       expect(options.logPrefix).toBe('VWO');
       expect(options.integrations).toEqual({ custom: 'integration' });
-      expect(options.gatewayService).toEqual({ url: 'https://gateway.vwo.com' });
+      expect(options.gatewayService).toEqual({
+        url: 'https://gateway.vwo.com',
+      });
       expect(options.cachedSettingsExpiryTime).toBe(60000);
       expect(options.pollInterval).toBe(30000);
       expect(options.batchMinSize).toBe(10);
@@ -233,7 +235,9 @@ describe('TypeScript Types and Interfaces', () => {
 
       expect(getFlag.isEnabled).toBe(true);
       expect(getFlag.variables).toHaveLength(1);
-      expect(getFlag.variables[0].key).toBe('test-key');
+
+      const arrVar: any = getFlag.variables;
+      expect(arrVar[0].key).toBe('test-key');
     });
 
     it('should allow disabled flag with empty variables', () => {
@@ -302,7 +306,7 @@ describe('TypeScript Types and Interfaces', () => {
     it('should allow GetFlagResult to be returned from functions', () => {
       const createMockResult = (): GetFlagResult => ({
         isEnabled: () => true,
-        getVariable: (key: string, defaultValue: any) => defaultValue,
+        getVariable: (_: string, defaultValue: any) => defaultValue,
         getVariables: () => [],
       });
 

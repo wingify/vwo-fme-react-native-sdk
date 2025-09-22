@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 #import <React/RCTBridgeModule.h>
 #import <React/RCTEventEmitter.h>
 
@@ -25,6 +25,7 @@ RCT_EXTERN_METHOD(trackEvent:(NSString *)eventName context:(NSDictionary *)conte
 RCT_EXTERN_METHOD(setAttribute:(NSDictionary *)attributes context:(NSDictionary *)context)
 RCT_EXTERN_METHOD(registerIntegrationCallback:(RCTResponseSenderBlock)callback)
 RCT_EXTERN_METHOD(setSessionData:(NSDictionary *)data)
+RCT_EXTERN_METHOD(sendSdkInitTime:(nonnull NSNumber *)initTimeMs)
 
 + (BOOL)requiresMainQueueSetup
 {
