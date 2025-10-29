@@ -28,6 +28,9 @@ export interface VWOInitOptions {
   batchUploadTimeInterval?: number;
   isUsageStatsDisabled?: boolean;
   vwoMeta?: { [key: string]: any };
+  maxRetries?: number; // Maximum number of retry attempts (default: 1)
+  retryDelayMs?: number; // Delay in milliseconds between retries (default: 2000)
+  initTimeoutMs?: number; // Initialization timeout in milliseconds (default: 15000)
 }
 // Interface representing the context of a user
 export interface VWOUserContext {

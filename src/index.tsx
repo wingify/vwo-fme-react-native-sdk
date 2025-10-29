@@ -16,6 +16,11 @@
 
 import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
 import type { VWOInitOptions, VWOUserContext, GetFlagResult } from './types';
+import {
+  DEFAULT_MAX_RETRIES,
+  DEFAULT_RETRY_DELAY_MS,
+  DEFAULT_INIT_TIMEOUT_MS,
+} from './constants';
 
 const LINKING_ERROR =
   `The package 'vwo-fme-react-native-sdk' doesn't seem to be linked. Make sure: \n\n` +
@@ -87,25 +92,111 @@ interface VWOBridgeInterface {
 
 // Initialize the SDK with the provided options
 export async function init(options: VWOInitOptions): Promise<any> {
-  try {
-    const startTime = Date.now();
-    const vwoInstance = new VWO();
-    // Update vwoMeta to include React Native version for usage statistics
-    const updatedOptions = {
-      ...options,
-      vwoMeta: {
-        ...(options.vwoMeta || {}), // Safely handle undefined vwoMeta
-        lv: `${Platform.constants.reactNativeVersion.major}.${Platform.constants.reactNativeVersion.minor}.${Platform.constants.reactNativeVersion.patch}`,
-      },
-    };
-    await VWONative.initialize(updatedOptions);
-    const initTime = Date.now() - startTime;
-    VWONative.sendSdkInitTime(initTime);
-    return vwoInstance;
-  } catch (error) {
-    console.error('Failed to initialize VWO:', error);
-    throw error;
+  const MAX_RETRIES = options.maxRetries ?? DEFAULT_MAX_RETRIES;
+  const RETRY_DELAY_MS = options.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
+  const INIT_TIMEOUT_MS = options.initTimeoutMs ?? DEFAULT_INIT_TIMEOUT_MS;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const vwoInstance = new VWO();
+
+      // Update vwoMeta to include React Native version for usage statistics
+      const updatedOptions = {
+        ...options,
+        vwoMeta: {
+          ...(options.vwoMeta || {}),
+          lv: `${Platform.constants.reactNativeVersion.major}.${Platform.constants.reactNativeVersion.minor}.${Platform.constants.reactNativeVersion.patch}`,
+        },
+      };
+
+      if (!VWONative || typeof VWONative.initialize !== 'function') {
+        if (attempt <= MAX_RETRIES) {
+          console.log(
+            `VWO SDK: Native module not available (attempt ${attempt + 1}/${MAX_RETRIES}). Retrying...`
+          );
+          await new Promise((resolve) =>
+            setTimeout(() => resolve(undefined), RETRY_DELAY_MS)
+          ); // Wait before retry
+          continue;
+        } else {
+          console.warn(
+            'VWO SDK: SDK is not initialized - native module not available.'
+          );
+          return createMockVWOInstance();
+        }
+      }
+
+      // Add timeout to prevent hanging - but don't throw error to avoid analytics noise
+      const timeoutPromise = new Promise((resolve) =>
+        setTimeout(() => {
+          console.warn(
+            'VWO SDK: SDK is not initialized - initialization timeout.'
+          );
+          resolve('timeout');
+        }, INIT_TIMEOUT_MS)
+      );
+
+      // Race between initialization and timeout
+      const result = await Promise.race([
+        VWONative.initialize(updatedOptions),
+        timeoutPromise,
+      ]);
+
+      // If timeout occurred, return mock instance instead of throwing error
+      if (result === 'timeout') {
+        if (attempt <= MAX_RETRIES) {
+          console.log(
+            `VWO SDK: Initialization timeout (attempt ${attempt + 1}/${MAX_RETRIES}). Retrying...`
+          );
+          await new Promise((resolve) =>
+            setTimeout(() => resolve(undefined), RETRY_DELAY_MS)
+          ); // Wait before retry
+          continue;
+        } else {
+          console.warn(
+            'VWO SDK: SDK is not initialized - using fallback mode.'
+          );
+          return createMockVWOInstance();
+        }
+      }
+
+      // Success - return the initialized instance
+      return vwoInstance;
+    } catch (error) {
+      if (attempt <= MAX_RETRIES) {
+        console.log(
+          `VWO SDK: Initialization failed (attempt ${attempt + 1}/${MAX_RETRIES}). Retrying...`
+        );
+        await new Promise((resolve) =>
+          setTimeout(() => resolve(undefined), RETRY_DELAY_MS)
+        ); // Wait 2 second before retry
+        continue;
+      } else {
+        // Log error for debugging but don't throw to avoid analytics noise
+        console.warn(
+          'VWO SDK: SDK is not initialized - initialization failed.'
+        );
+        console.warn('VWO SDK: Using fallback mode to ensure app stability.');
+
+        // Return mock instance instead of null to prevent app crashes
+        return createMockVWOInstance();
+      }
+    }
   }
+}
+
+// Helper function to create a mock VWO instance
+function createMockVWOInstance() {
+  return {
+    getFlag: () => Promise.resolve({ isEnabled: false, variables: {} }),
+    trackEvent: () => Promise.resolve(),
+    setAttribute: () => Promise.resolve(),
+    setSessionData: () => Promise.resolve(),
+    getVariable: () => Promise.resolve(null),
+    getVariables: () => Promise.resolve({}),
+    cleanup: () => {},
+    // Add any other methods your VWO class has
+  };
 }
 
 // Main class to interact with the SDK

@@ -93,6 +93,9 @@ To customize the SDK further, additional parameters can be passed to the `VWOIni
 | `cachedSettingsExpiryTime`   | Expiry time for cached settings in milliseconds.                                                                                                            | No           | number    | `3600000`                       |
 | `batchMinSize`               | Minimum size of batch to upload.                                                                                                                            | No           | number      | `10`                            |
 | `batchUploadTimeInterval`    | Batch upload time interval in milliseconds.                                                                                                                 | No           | Int64    | `300000`                        |
+| `maxRetries`                 | Maximum number of retry attempts for SDK initialization (default: 1).                                                                                       | No           | number      | `1`                            |
+| `retryDelayMs`               | Delay between retry attempts in milliseconds (default: 2000).                                                                                               | No           | number      | `2000`                         |
+| `initTimeoutMs`              | Timeout for SDK initialization in milliseconds (default: 15000).                                                                                            | No           | number      | `15000`                        |
 
 ### Additional Callbacks
 
