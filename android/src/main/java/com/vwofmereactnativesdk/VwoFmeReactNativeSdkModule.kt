@@ -122,7 +122,7 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
     }
 
     val sdkName = "vwo-fme-react-native-sdk"
-    val sdkVersion = "1.8.1"
+    val sdkVersion = "1.8.2"
 
     val vwoOptions = VWOInitOptions().apply {
       this.sdkKey = sdkKey

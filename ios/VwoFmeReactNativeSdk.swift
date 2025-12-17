@@ -112,7 +112,7 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
       }
 
       var sdkName: String = "vwo-fme-react-native-sdk"
-      var sdkVersion: String = "1.8.1"
+      var sdkVersion: String = "1.8.2"
 
       let vwoOptions: VWOInitOptions
       vwoOptions = VWOInitOptions(sdkKey: sdkKey,
