@@ -27,6 +27,7 @@ export interface VWOInitOptions {
   batchMinSize?: number;
   batchUploadTimeInterval?: number;
   isUsageStatsDisabled?: boolean;
+  isAliasingEnabled?: boolean; // Enable for setup userId alias
   vwoMeta?: { [key: string]: any };
   maxRetries?: number; // Maximum number of retry attempts (default: 1)
   retryDelayMs?: number; // Delay in milliseconds between retries (default: 2000)
@@ -36,6 +37,7 @@ export interface VWOInitOptions {
 export interface VWOUserContext {
   id?: string;
   customVariables?: { [key: string]: any };
+  shouldUseDeviceIdAsUserId?: boolean;
 }
 
 // Interface representing a variable used in feature flags

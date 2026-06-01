@@ -68,11 +68,18 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
       let hasIntegrations = options["integrations"] != nil
 
       let logLevel: LogLevelEnum
-      if let logLevelString = options["logLevel"] as? String,
-         let level = LogLevelEnum(rawValue: logLevelString.uppercased()) {
-          logLevel = level
+      if let logLevelString = options["logLevel"] as? String {
+          // LogLevelEnum expects lowercase values: "trace", "debug", "info", "warn", "error"
+          let normalizedLogLevel = logLevelString.lowercased()
+          if let level = LogLevelEnum(rawValue: normalizedLogLevel) {
+              logLevel = level
+          } else {
+              // Invalid log level provided, default to .error and log warning
+              print("VWO React Native SDK: Invalid logLevel '\(logLevelString)'. Valid values are: trace, debug, info, warn, error. Defaulting to error.")
+              logLevel = .error
+          }
       } else {
-          // Default to .error if log level is not provided or invalid
+          // No log level provided, default to .error
           logLevel = .error
       }
 
@@ -111,13 +118,24 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
           isUsageStatsDisabled = usageStatsValue
       }
 
+      var logPrefix: String = ""
+      if let prefix = options["logPrefix"] as? String {
+          logPrefix = prefix
+      }
+
+      var isAliasingEnabled: Bool = false
+      if let aliasingEnabled = options["isAliasingEnabled"] as? Bool {
+          isAliasingEnabled = aliasingEnabled
+      }
+
       var sdkName: String = "vwo-fme-react-native-sdk"
-      var sdkVersion: String = "1.8.2"
+      var sdkVersion: String = "1.9.0"
 
       let vwoOptions: VWOInitOptions
       vwoOptions = VWOInitOptions(sdkKey: sdkKey,
                                   accountId: accountId,
                                   logLevel: logLevel,
+                                  logPrefix: logPrefix,
                                   integrations: hasIntegrations ? self : nil,
                                   gatewayService: gatewayService,
                                   cachedSettingsExpiryTime: cachedSettingsExpiry,
@@ -128,7 +146,8 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
                                   sdkVersion: sdkVersion,
                                   logTransport: self,
                                   isUsageStatsDisabled: isUsageStatsDisabled,
-                                  vwoMeta: vwoMeta)
+                                  vwoMeta: vwoMeta,
+                                  isAliasingEnabled: isAliasingEnabled)
 
     VWOFme.initialize(options: vwoOptions) { result in
       switch result {
@@ -141,39 +160,138 @@ class VwoFmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
     }
   }
 
-  // Send SDK initialization time to native SDK
+  // Send SDK initialization time to native SDK for a specific instance
   @objc
-  func sendSdkInitTime(_ initTimeMs: NSNumber) {
-    VWOFme.sendSdkInitEvent(sdkInitTime: initTimeMs.int64Value)
+  func sendSdkInitTime(_ initTimeMs: NSNumber, accountId: NSNumber, sdkKey: String) {
+    // Note: The native SDK already handles sending SDK init events internally during initialization.
+    // This method is kept for backward compatibility but may not work correctly with multiple instances
+    // as it requires access to the VWOClient's ServiceContainer which is not publicly accessible.
+    // For proper multi-instance support, the SDK init event is automatically sent during initialization.
+    // Use sentinel values: accountId = 0 or sdkKey = "" means not provided
+    let accountIdValue = accountId.intValue
+    let sdkKeyValue = sdkKey
+    
+    if accountIdValue != 0 && !sdkKeyValue.isEmpty {
+      // Try to get the instance and send the event if possible
+      if let instance = getVWOInstance(accountId: accountIdValue, sdkKey: sdkKeyValue) {
+        // Requires VWOFme to expose an instance method for account-specific context.
+        instance.sendSdkInitEvent(sdkInitTime: initTimeMs.int64Value)
+        return
+      }
+    }
   }
 
-  // Retrieve a feature flag with the given context
+  // Helper method to get VWO instance based on accountId and sdkKey
+  private func getVWOInstance(accountId: Int?, sdkKey: String?) -> VWOFme? {
+    guard let accountId = accountId, let sdkKey = sdkKey, !sdkKey.isEmpty else {
+      return nil
+    }
+    return VWOFme.getInstance(accountId: accountId, sdkKey: sdkKey)
+  }
+
+  // Get a specific VWO instance by accountId and sdkKey
   @objc
-  func getFlag(_ featureKey: String, context: NSDictionary, resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
-      let vwoUserContext = VWOUserContext(id: context["id"] as? String, customVariables: context["customVariables"] as? [String: Any] ?? [:])
+  func getInstance(_ accountId: NSNumber, sdkKey: String, resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
+    guard let vwoInstance = getVWOInstance(accountId: accountId.intValue, sdkKey: sdkKey) else {
+      rejecter("INSTANCE_NOT_FOUND", "VWO instance not found for accountId: \(accountId) and sdkKey: \(sdkKey)", nil)
+      return
+    }
+    resolver(["success": true, "accountId": accountId, "sdkKey": sdkKey])
+  }
 
+  // Retrieve a feature flag with the given context for a specific instance
+  @objc
+  func getFlag(_ featureKey: String, accountId: NSNumber, sdkKey: String, context: NSDictionary, resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
+  let vwoUserContext = VWOUserContext(id: context["id"] as? String, shouldUseDeviceIdAsUserId: context["shouldUseDeviceIdAsUserId"] as? Bool ?? false, customVariables: context["customVariables"] as? [String: Any] ?? [:]) 
+      // Use sentinel values: accountId = 0 or sdkKey = "" means not provided (fallback to static method)
+      let accountIdValue = accountId.intValue
+      let sdkKeyValue = sdkKey
+      
+      // First, try to get instance if accountId and sdkKey are provided (non-zero accountId and non-empty sdkKey)
+      if accountIdValue != 0 && !sdkKeyValue.isEmpty,
+         let vwoInstance = getVWOInstance(accountId: accountIdValue, sdkKey: sdkKeyValue) {
+        // Use instance method if instance exists
+        vwoInstance.getFlag(featureKey: featureKey, context: vwoUserContext) { flag in
+          let flagResult: [String: Any] = [
+              "isEnabled": flag.isEnabled(),
+              "variables": flag.getVariables(),
+          ]
+          resolver(flagResult)
+        }
+        return
+      }
+      
+      // Fallback to static method (old version) if instance not found or accountId/sdkKey not provided
       VWOFme.getFlag(featureKey: featureKey, context: vwoUserContext) { flag in
-
         let flagResult: [String: Any] = [
             "isEnabled": flag.isEnabled(),
             "variables": flag.getVariables(),
         ]
         resolver(flagResult)
-    }
+      }
   }
 
-  // Track an event with the given context and properties
+  // Track an event with the given context and properties for a specific instance
   @objc
-  func trackEvent(_ eventName: String, context: NSDictionary, eventProperties: NSDictionary) {
-      let vwoUserContext = VWOUserContext(id: context["id"] as? String, customVariables: context["customVariables"] as? [String: Any] ?? [:])
+  func trackEvent(_ eventName: String, accountId: NSNumber, sdkKey: String, context: NSDictionary, eventProperties: NSDictionary) {
+      let vwoUserContext = VWOUserContext(id: context["id"] as? String, shouldUseDeviceIdAsUserId: context["shouldUseDeviceIdAsUserId"] as? Bool ?? false, customVariables: context["customVariables"] as? [String: Any] ?? [:])
+      
+      // Use sentinel values: accountId = 0 or sdkKey = "" means not provided (fallback to static method)
+      let accountIdValue = accountId.intValue
+      let sdkKeyValue = sdkKey
+      
+      // First, try to get instance if accountId and sdkKey are provided (non-zero accountId and non-empty sdkKey)
+      if accountIdValue != 0 && !sdkKeyValue.isEmpty,
+         let vwoInstance = getVWOInstance(accountId: accountIdValue, sdkKey: sdkKeyValue) {
+        // Use instance method if instance exists
+        vwoInstance.trackEvent(eventName: eventName, context: vwoUserContext, eventProperties: eventProperties as? [String: Any])
+        return
+      }
+      
+      // Fallback to static method (old version) if instance not found or accountId/sdkKey not provided
       VWOFme.trackEvent(eventName: eventName, context: vwoUserContext, eventProperties: eventProperties as? [String: Any])
   }
 
-  // Set an attribute for the given context
+  // Set an attribute for the given context for a specific instance
   @objc
-  func setAttribute(_ attributes: NSDictionary, context: NSDictionary) {
-      let vwoUserContext = VWOUserContext(id: context["id"] as? String, customVariables: context["customVariables"] as? [String: Any] ?? [:])
+  func setAttribute(_ attributes: NSDictionary, accountId: NSNumber, sdkKey: String, context: NSDictionary) {
+      let vwoUserContext = VWOUserContext(id: context["id"] as? String, shouldUseDeviceIdAsUserId: context["shouldUseDeviceIdAsUserId"] as? Bool ?? false, customVariables: context["customVariables"] as? [String: Any] ?? [:])
+      
+      // Use sentinel values: accountId = 0 or sdkKey = "" means not provided (fallback to static method)
+      let accountIdValue = accountId.intValue
+      let sdkKeyValue = sdkKey
+      
+      // First, try to get instance if accountId and sdkKey are provided (non-zero accountId and non-empty sdkKey)
+      if accountIdValue != 0 && !sdkKeyValue.isEmpty,
+         let vwoInstance = getVWOInstance(accountId: accountIdValue, sdkKey: sdkKeyValue) {
+        // Use instance method if instance exists
+        vwoInstance.setAttribute(attributes: attributes as? [String: Any] ?? [:], context: vwoUserContext)
+        return
+      }
+      
+      // Fallback to static method (old version) if instance not found or accountId/sdkKey not provided
       VWOFme.setAttribute(attributes: attributes as? [String: Any] ?? [:], context: vwoUserContext)
+  }
+
+  // Set alias for a user for a specific instance
+  @objc
+  func setAlias(_ fromContext: NSDictionary, toAlias: String, accountId: NSNumber, sdkKey: String) {
+      let vwoUserContext = VWOUserContext(id: fromContext["id"] as? String, shouldUseDeviceIdAsUserId: fromContext["shouldUseDeviceIdAsUserId"] as? Bool ?? false, customVariables: fromContext["customVariables"] as? [String: Any] ?? [:])
+      
+      // Use sentinel values: accountId = 0 or sdkKey = "" means not provided (fallback to static method)
+      let accountIdValue = accountId.intValue
+      let sdkKeyValue = sdkKey
+      
+      // First, try to get instance if accountId and sdkKey are provided (non-zero accountId and non-empty sdkKey)
+      if accountIdValue != 0 && !sdkKeyValue.isEmpty,
+         let vwoInstance = getVWOInstance(accountId: accountIdValue, sdkKey: sdkKeyValue) {
+        // Use instance method if instance exists
+        vwoInstance.setAlias(from: vwoUserContext, to: toAlias)
+        return
+      }
+      
+      // Fallback to static method (old version) if instance not found or accountId/sdkKey not provided
+      VWOFme.setAlias(from: vwoUserContext, to: toAlias)
   }
 
   // Sets the session data for the current FME session.

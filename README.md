@@ -96,6 +96,7 @@ To customize the SDK further, additional parameters can be passed to the `VWOIni
 | `maxRetries`                 | Maximum number of retry attempts for SDK initialization (default: 1).                                                                                       | No           | number      | `1`                            |
 | `retryDelayMs`               | Delay between retry attempts in milliseconds (default: 2000).                                                                                               | No           | number      | `2000`                         |
 | `initTimeoutMs`              | Timeout for SDK initialization in milliseconds (default: 15000).                                                                                            | No           | number      | `15000`                        |
+| `isAliasingEnabled`          | Enables alias support for linking user identities via `setAlias`.                                                                                           | No           | boolean     | `true`                         |
 
 ### Additional Callbacks
 
@@ -120,6 +121,7 @@ The following table explains all the parameters in the `context` object:
 | ----------------- | -------------------------------------------------------------------------- | ------------ | -------- | --------------------------------- |
 | `id`              | Unique identifier for the user.                                            | Yes          | String   | `'unique_user_id'`                |
 | `customVariables` | Custom attributes for targeting.                                           | No           | Object   | `{ age: 25, location: 'US' }`     |
+| `shouldUseDeviceIdAsUserId` | Falls back to device ID when `id` is not provided.                         | No           | Boolean  | `true`                             |
 
 #### Example
 
@@ -127,6 +129,48 @@ The following table explains all the parameters in the `context` object:
 import {  VWOUserContext } from 'vwo-fme-react-native-sdk/src/types';
 
 const userContext: VWOUserContext = { id: 'unique_user_id', customVariables: { age: 25, location: 'US' } };
+```
+
+### User Aliasing
+
+Use aliasing to connect an anonymous/pre-login user to a known identifier after sign-in.
+
+```javascript
+const options: VWOInitOptions = {
+  sdkKey: SDK_KEY,
+  accountId: ACCOUNT_ID,
+  isAliasingEnabled: true,
+};
+const vwoClient = await init(options);
+
+const anonymousContext: VWOUserContext = { id: 'guest_user_123' };
+await vwoClient.setAlias(anonymousContext, 'logged_in_user_456');
+```
+
+### Device ID Fallback
+
+If your app does not have a stable user ID at evaluation time, set `shouldUseDeviceIdAsUserId: true` in user context.
+
+```javascript
+const userContext: VWOUserContext = {
+  shouldUseDeviceIdAsUserId: true,
+  customVariables: { platform: 'ios' },
+};
+
+const flagResult = await vwoClient.getFlag('new_checkout', userContext);
+```
+
+### Multi-Instance / Multi-Account
+
+You can initialize multiple SDK instances for different account and SDK key pairs in the same app.
+
+```javascript
+const clientA = await init({ accountId: 111111, sdkKey: 'sdk-key-a' });
+const clientB = await init({ accountId: 222222, sdkKey: 'sdk-key-b' });
+
+// retrieve an initialized instance later
+const reusedClientA = VWO.getInstance(111111, 'sdk-key-a');
+
 ```
 
 ### Basic Feature Flagging
