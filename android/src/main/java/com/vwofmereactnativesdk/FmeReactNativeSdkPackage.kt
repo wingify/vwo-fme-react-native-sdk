@@ -1,5 +1,5 @@
 /**
- * Copyright 2024-2025 Wingify Software Pvt. Ltd.
+ * Copyright 2024-2026 Wingify Software Pvt. Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.vwofmereactnativesdk
 
 import com.facebook.react.ReactPackage
@@ -21,13 +21,16 @@ import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.uimanager.ViewManager
 
-
-class VwoFmeReactNativeSdkPackage : ReactPackage {
+class FmeReactNativeSdkPackage : ReactPackage {
   override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-    return listOf(VwoFmeReactNativeSdkModule(reactContext))
+    return listOf(FmeReactNativeSdkModule(reactContext))
   }
 
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
     return emptyList()
   }
 }
+
+/** @deprecated Renamed to [FmeReactNativeSdkPackage]; kept for manual linking / older autolinking configs. */
+@Deprecated("Use FmeReactNativeSdkPackage", ReplaceWith("FmeReactNativeSdkPackage"))
+typealias VwoFmeReactNativeSdkPackage = FmeReactNativeSdkPackage

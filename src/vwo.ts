@@ -1,5 +1,5 @@
 /**
- * Copyright 2024-2025 Wingify Software Pvt. Ltd.
+ * Copyright 2024-2026 Wingify Software Pvt. Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
-#import <React/RCTBridgeModule.h>
-#import <React/RCTViewManager.h>
+
+import { init as fmeInit, VWO } from './core/fme-client';
+import { CLIENT_SDK_BRAND_VWO } from './core/sdk-brand';
+import type { VWOInitOptions } from './types';
+
+export { VWO };
+
+/**
+ * VWO entry-point init. Native bridge receives `sdkBrand: "vwo"` automatically.
+ */
+export async function init(options: VWOInitOptions): Promise<VWO> {
+  return fmeInit(options, CLIENT_SDK_BRAND_VWO);
+}

@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-// Default retry configuration values
-export const DEFAULT_MAX_RETRIES = 1; // 2 total attempts (initial + 1 retry)
-export const DEFAULT_RETRY_DELAY_MS = 2000; // 2 seconds delay between retries
-export const DEFAULT_INIT_TIMEOUT_MS = 15000; // 15 seconds timeout for initialization
+/** Which JS entry point initialized the client (`init` from VWO vs Wingify). */
+export type ClientSdkBrand = 'vwo' | 'wingify';
+
+export const CLIENT_SDK_BRAND_VWO: ClientSdkBrand = 'vwo';
+export const CLIENT_SDK_BRAND_WINGIFY: ClientSdkBrand = 'wingify';

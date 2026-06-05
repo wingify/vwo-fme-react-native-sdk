@@ -1,5 +1,5 @@
 /**
- * Copyright 2024-2025 Wingify Software Pvt. Ltd.
+ * Copyright 2024-2026 Wingify Software Pvt. Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,12 @@
 
 @interface RCT_EXTERN_MODULE(VwoFmeReactNativeSdk, RCTEventEmitter)
 
+RCT_EXTERN_METHOD(initializeVwo:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(initializeWingify:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(initialize:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(getClientSdkBrand:(nonnull NSNumber *)accountId sdkKey:(nonnull NSString *)sdkKey resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(getInstance:(nonnull NSNumber *)accountId sdkKey:(nonnull NSString *)sdkKey resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(clearInstance:(nonnull NSNumber *)accountId sdkKey:(nonnull NSString *)sdkKey resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(getFlag:(nonnull NSString *)featureKey accountId:(nonnull NSNumber *)accountId sdkKey:(nonnull NSString *)sdkKey context:(nonnull NSDictionary *)context resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(trackEvent:(nonnull NSString *)eventName accountId:(nonnull NSNumber *)accountId sdkKey:(nonnull NSString *)sdkKey context:(nonnull NSDictionary *)context eventProperties:(nonnull NSDictionary *)eventProperties)
 RCT_EXTERN_METHOD(setAttribute:(nonnull NSDictionary *)attributes accountId:(nonnull NSNumber *)accountId sdkKey:(nonnull NSString *)sdkKey context:(nonnull NSDictionary *)context)

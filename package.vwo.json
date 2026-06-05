@@ -1,7 +1,7 @@
 {
-  "name": "wingify-fme-react-native-sdk",
+  "name": "vwo-fme-react-native-sdk",
   "version": "1.50.0",
-  "description": "Wingify react native SDK for Feature Management and Experimentation",
+  "description": "VWO react native SDK for Feature Management and Experimentation",
   "source": "./src/index.tsx",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",

@@ -1,5 +1,5 @@
 /**
- * Copyright 2024-2025 Wingify Software Pvt. Ltd.
+ * Copyright 2024-2026 Wingify Software Pvt. Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,8 @@ jest.mock('react-native', () => {
   return {
     NativeModules: {
       VwoFmeReactNativeSdk: {
-        initialize: jest.fn(),
+        initializeVwo: jest.fn(),
+        initializeWingify: jest.fn(),
         getFlag: jest.fn(),
         trackEvent: jest.fn(),
         setAttribute: jest.fn(),
@@ -81,11 +82,11 @@ describe('VWO FME React Native SDK', () => {
         logLevel: LogLevel.info,
       };
 
-      mockNativeModule.initialize.mockResolvedValue('success');
+      mockNativeModule.initializeVwo.mockResolvedValue('success');
 
       const result = await init(mockOptions);
 
-      expect(mockNativeModule.initialize).toHaveBeenCalledWith(
+      expect(mockNativeModule.initializeVwo).toHaveBeenCalledWith(
         expect.objectContaining({
           ...mockOptions,
           vwoMeta: expect.objectContaining({
@@ -93,6 +94,7 @@ describe('VWO FME React Native SDK', () => {
           }),
         })
       );
+      expect(mockNativeModule.initializeWingify).not.toHaveBeenCalled();
       expect(result).toBeInstanceOf(VWO);
     });
 
@@ -104,11 +106,11 @@ describe('VWO FME React Native SDK', () => {
         },
       };
 
-      mockNativeModule.initialize.mockResolvedValue('success');
+      mockNativeModule.initializeVwo.mockResolvedValue('success');
 
       await init(mockOptions);
 
-      expect(mockNativeModule.initialize).toHaveBeenCalledWith(
+      expect(mockNativeModule.initializeVwo).toHaveBeenCalledWith(
         expect.objectContaining({
           ...mockOptions,
           vwoMeta: expect.objectContaining({
@@ -125,7 +127,7 @@ describe('VWO FME React Native SDK', () => {
       };
 
       const error = new Error('Initialization failed');
-      mockNativeModule.initialize.mockRejectedValue(error);
+      mockNativeModule.initializeVwo.mockRejectedValue(error);
 
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
@@ -343,7 +345,8 @@ describe('VWO FME React Native SDK', () => {
       // This test verifies that the SDK handles missing native modules
       // by creating a proxy that throws appropriate errors
       expect(mockNativeModule).toBeDefined();
-      expect(typeof mockNativeModule.initialize).toBe('function');
+      expect(typeof mockNativeModule.initializeVwo).toBe('function');
+      expect(typeof mockNativeModule.initializeWingify).toBe('function');
     });
   });
 });

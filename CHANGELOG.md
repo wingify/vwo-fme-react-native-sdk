@@ -5,6 +5,81 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.50.0] - 2026-06-05
+
+This release introduces Wingify as the primary SDK branding for React Native, while keeping existing VWO integrations fully supported.
+
+Both React Native entry points ship from the **same codebase**. New releases publish as **`wingify-fme-react-native-sdk`**; the legacy npm name **`vwo-fme-react-native-sdk`** remains documented for existing consumers.
+
+| Install / import | Public API |
+| --- | --- |
+| `wingify-fme-react-native-sdk/wingify` (or `vwo-fme-react-native-sdk/wingify`) | `Wingify`, `WingifyInitOptions`, `WingifyUserContext` (recommended) |
+| `wingify-fme-react-native-sdk` or `vwo-fme-react-native-sdk` (root) | `VWO`, `VWOInitOptions`, `VWOUserContext` (legacy, deprecated) |
+
+For migration notes, see [MIGRATION_GUIDE_WINGIFY_REACT_NATIVE.md](./MIGRATION_GUIDE_WINGIFY_REACT_NATIVE.md).
+
+### Added
+
+- **Wingify public API** — use `Wingify`, `WingifyInitOptions`, and `WingifyUserContext` for new integrations.
+- **Wingify entry point** — `vwo-fme-react-native-sdk/wingify` as a dedicated import path for Wingify-branded usage.
+
+```ts
+// Wingify (recommended)
+import {
+  init as initWingify,
+  type WingifyInitOptions,
+  type WingifyUserContext,
+} from 'vwo-fme-react-native-sdk/wingify';
+
+const options: WingifyInitOptions = {
+  sdkKey: SDK_KEY,
+  accountId: ACCOUNT_ID,
+};
+
+const wingifyClient = await initWingify(options);
+
+const context: WingifyUserContext = { id: 'user-123' };
+const flag = await wingifyClient.getFlag('feature-key', context);
+```
+
+### Changed
+
+- SDK initialization now supports Wingify-branded APIs via `initWingify(...)` and `Wingify` client type.
+- Documentation and logs have been updated to reflect Wingify branding where applicable.
+- When initialized through Wingify APIs, settings/events route through Wingify hosts (`edge.wingify.net`, `collect.wingify.net`).
+- React Native SDK version is aligned with native SDKs (`1.50.0`) and upgraded native dependencies.
+- No breaking changes for existing VWO integrations — event names, payload keys, and runtime behavior remain compatible.
+
+### Deprecated
+
+The following VWO APIs remain supported but are deprecated:
+
+| Deprecated (still supported) | Use instead |
+| --- | --- |
+| `VWO` | `Wingify` |
+| `VWOInitOptions` | `WingifyInitOptions` |
+| `VWOUserContext` | `WingifyUserContext` |
+| (none for metadata) | Init metadata field remains `vwoMeta` on both VWO and Wingify init options |
+
+Existing code does not need to change immediately. We recommend using Wingify APIs for new projects and migrating when convenient:
+
+```ts
+// Still supported — no action required today
+import { init, VWO, type VWOInitOptions, type VWOUserContext } from 'vwo-fme-react-native-sdk';
+
+const options: VWOInitOptions = {
+  sdkKey: SDK_KEY,
+  accountId: ACCOUNT_ID,
+};
+
+const vwoClient: VWO = await init(options);
+
+const context: VWOUserContext = { id: 'user-123' };
+await vwoClient.getFlag('feature-key', context);
+```
+
+**Migration tip:** Replace `VWO` → `Wingify`, `VWOInitOptions` → `WingifyInitOptions`, `VWOUserContext` → `WingifyUserContext`, install `wingify-fme-react-native-sdk` and import from `wingify-fme-react-native-sdk/wingify` (legacy package name + `/wingify` still work). Keep `vwoMeta` in init options. Method signatures and SDK behavior remain compatible.
+
 ## [1.9.0] - 2026-04-29
 
 ### Added

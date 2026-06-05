@@ -1,5 +1,5 @@
 /**
- * Copyright 2024-2025 Wingify Software Pvt. Ltd.
+ * Copyright 2024-2026 Wingify Software Pvt. Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,17 +27,22 @@ import com.vwo.models.user.VWOUserContext
 import com.vwo.models.user.VWOInitOptions
 import com.vwo.interfaces.IVwoInitCallback
 import com.vwo.interfaces.IVwoListener
-import com.vwo.interfaces.integration.IntegrationCallback
+import com.vwo.interfaces.integration.IntegrationCallback as VwoIntegrationCallback
 import com.vwo.models.user.GetFlag
-import com.vwo.models.user.GatewayService
-import com.vwo.models.Variable
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableArray
 import com.facebook.react.bridge.WritableMap
 import com.vwo.interfaces.logger.LogTransport
 import com.vwo.packages.logger.enums.LogLevelEnum
 import com.vwo.models.user.FMEConfig
-import java.lang.System
+import com.wingify.Wingify
+import com.wingify.interfaces.IWingifyInitCallback
+import com.wingify.interfaces.IWingifyListener
+import com.wingify.interfaces.integration.IntegrationCallback as WingifyIntegrationCallback
+import com.wingify.models.user.WingifyInitOptions
+import com.wingify.models.user.WingifyUserContext
+import com.wingify.models.user.GetFlag as WingifyGetFlag
+import com.wingify.models.user.FMEConfig as WingifyFMEConfig
 
 /**
  * React Native native module that serves as the Android bridge for the VWO FME SDK.
@@ -61,14 +66,37 @@ import java.lang.System
  * @see VWO
  * @see VWOInitOptions
  */
-class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
+class FmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
+
+  /** `vwo` or `wingify` — set from JS `sdkBrand` on initialize, per accountId/sdkKey. */
+  private val clientBrandsByInstanceKey = mutableMapOf<String, String>()
+
+  private fun instanceKey(accountId: Int, sdkKey: String): String = "${accountId}_$sdkKey"
+
+  private fun clientSdkBrand(accountId: Int, sdkKey: String): String =
+    clientBrandsByInstanceKey[instanceKey(accountId, sdkKey)] ?: CLIENT_BRAND_VWO
+
+  private fun isVwoClient(accountId: Int, sdkKey: String): Boolean =
+    clientSdkBrand(accountId, sdkKey) == CLIENT_BRAND_VWO
+
+  private fun isWingifyClient(accountId: Int, sdkKey: String): Boolean =
+    clientSdkBrand(accountId, sdkKey) == CLIENT_BRAND_WINGIFY
+
+  private fun clientErrorCodePrefix(clientBrand: String): String =
+    if (clientBrand == CLIENT_BRAND_WINGIFY) "WINGIFY" else "VWO"
+
+  private fun clientErrorCode(accountId: Int, sdkKey: String, suffix: String): String =
+    "${clientErrorCodePrefix(clientSdkBrand(accountId, sdkKey))}_$suffix"
+
+  private fun clientErrorCode(clientBrand: String, suffix: String): String =
+    "${clientErrorCodePrefix(clientBrand)}_$suffix"
 
   /**
    * Returns the name of this native module as registered with the React Native bridge.
    *
    * This name is used on the JavaScript side to reference this module
-   * via `NativeModules.VwoFmeReactNativeSdk`.
+   * via `NativeModules.FmeReactNativeSdk` (legacy: `NativeModules.VwoFmeReactNativeSdk`).
    *
    * @return The constant module name [NAME].
    */
@@ -105,10 +133,28 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
    *   or rejects with error code `VWO_INIT_FAILED` and an error message on failure.
    */
   @ReactMethod
+  fun initializeVwo(options: ReadableMap, promise: Promise) {
+    initialize(options, CLIENT_BRAND_VWO, promise)
+  }
+
+  @ReactMethod
+  fun initializeWingify(options: ReadableMap, promise: Promise) {
+    initialize(options, CLIENT_BRAND_WINGIFY, promise)
+  }
+
+  /** @deprecated Legacy entry; use [initializeVwo]. Kept for older JS bundles (single argument). */
+  @ReactMethod
   fun initialize(options: ReadableMap, promise: Promise) {
+    initialize(options, CLIENT_BRAND_VWO, promise)
+  }
+
+  private fun initialize(options: ReadableMap, clientBrand: String, promise: Promise) {
 
     val sdkKey = options.getString("sdkKey") ?: ""
     val accountId = options.getInt("accountId") ?: 0
+    if (sdkKey.isNotEmpty() && accountId != 0) {
+      clientBrandsByInstanceKey[instanceKey(accountId, sdkKey)] = clientBrand
+    }
 
     val gatewayService = options.getMap("gatewayService")?.toHashMap() ?: HashMap<String, Any>()
 
@@ -170,7 +216,7 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
 
     val loggerValue = options.getString("logLevel")
     val normalizedLogLevel = if (loggerValue != null) {
-      loggerValue.lowercase()
+      loggerValue.uppercase()
     } else {
       "ERROR"
     }
@@ -190,8 +236,44 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
       put("transports", logger2)
     }
 
-    val sdkName = "vwo-fme-react-native-sdk"
-    val sdkVersion = "1.9.0"
+    val sdkName = if (clientBrand == CLIENT_BRAND_WINGIFY) {
+      "wingify-fme-react-native-sdk"
+    } else {
+      "vwo-fme-react-native-sdk"
+    }
+    val sdkVersion = "1.50.0"
+
+    if (clientBrand == CLIENT_BRAND_WINGIFY) {
+      val wingifyOptions = WingifyInitOptions().apply {
+        this.sdkKey = sdkKey
+        this.accountId = accountId
+        this.context = reactApplicationContext
+        this.pollInterval = pollInterval
+        this.cachedSettingsExpiryTime = cachedSettingsExpiryTime
+        this.gatewayService = gatewayService as Map<String, Any>
+        this.logger = logger
+        this.sdkName = sdkName
+        this.sdkVersion = sdkVersion
+        this.batchMinSize = batchMinSize
+        this.batchUploadTimeInterval = batchUploadTimeInterval
+        this.isUsageStatsDisabled = isUsageStatsDisabled
+        this._vwo_meta = vwoMetaData
+        this.isAliasingEnabled = isAliasingEnabled
+        if (hasIntegrations) {
+          this.integrations = createWingifyIntegrationCallback()
+        }
+      }
+      Wingify.init(wingifyOptions, object : IWingifyInitCallback {
+        override fun wingifyInitSuccess(wingify: Wingify, message: String) {
+          promise.resolve(message)
+        }
+
+        override fun wingifyInitFailed(message: String) {
+          promise.reject(clientErrorCode(clientBrand, "INIT_FAILED"), message)
+        }
+      })
+      return
+    }
 
     val vwoOptions = VWOInitOptions().apply {
       this.sdkKey = sdkKey
@@ -209,23 +291,7 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
       this._vwo_meta = vwoMetaData
       this.isAliasingEnabled = isAliasingEnabled
       if (hasIntegrations) {
-        this.integrations = object : IntegrationCallback {
-          override fun execute(properties: Map<String, Any>) {
-            val params = Arguments.createMap()
-            for ((key, value) in properties) {
-              when (value) {
-                is String -> params.putString(key, value)
-                is Int -> params.putInt(key, value)
-                is Double -> params.putDouble(key, value)
-                is Boolean -> params.putBoolean(key, value)
-                is Map<*, *> -> params.putMap(key, mapToWritableMap(value))
-                is List<*> -> params.putArray(key, listToWritableArray(value))
-                else -> params.putString(key, value.toString())
-              }
-            }
-            sendEvent("IntegrationCallbackEvent", params)
-          }
-        }
+        this.integrations = createVwoIntegrationCallback()
       }
     }
     VWO.init(vwoOptions, object : IVwoInitCallback {
@@ -234,9 +300,65 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
       }
 
       override fun vwoInitFailed(message: String) {
-        promise.reject("VWO_INIT_FAILED", message)
+        promise.reject(clientErrorCode(clientBrand, "INIT_FAILED"), message)
       }
     })
+  }
+
+  private fun createVwoIntegrationCallback(): VwoIntegrationCallback {
+    return object : VwoIntegrationCallback {
+      override fun execute(properties: Map<String, Any>) {
+        emitIntegrationCallback(properties)
+      }
+    }
+  }
+
+  private fun createWingifyIntegrationCallback(): WingifyIntegrationCallback {
+    return object : WingifyIntegrationCallback {
+      override fun execute(properties: Map<String, Any>) {
+        emitIntegrationCallback(properties)
+      }
+    }
+  }
+
+  private fun emitIntegrationCallback(properties: Map<String, Any>) {
+    val params = Arguments.createMap()
+    for ((key, value) in properties) {
+      when (value) {
+        is String -> params.putString(key, value)
+        is Int -> params.putInt(key, value)
+        is Double -> params.putDouble(key, value)
+        is Boolean -> params.putBoolean(key, value)
+        is Map<*, *> -> params.putMap(key, mapToWritableMap(value))
+        is List<*> -> params.putArray(key, listToWritableArray(value))
+        else -> params.putString(key, value.toString())
+      }
+    }
+    sendEvent("IntegrationCallbackEvent", params)
+  }
+
+  private fun getWingifyInstance(accountId: Int, sdkKey: String): Wingify? {
+    return try {
+      Wingify.getInstance(accountId, sdkKey)
+    } catch (e: Exception) {
+      null
+    }
+  }
+
+  private fun buildVwoUserContext(context: ReadableMap): VWOUserContext {
+    return VWOUserContext().apply {
+      this.id = context.getString("id") ?: ""
+      this.customVariables = extractCustomVariables(context)
+      this.shouldUseDeviceIdAsUserId = getUseDeviceIdAsUserIdFlag(context)
+    }
+  }
+
+  private fun buildWingifyUserContext(context: ReadableMap): WingifyUserContext {
+    return WingifyUserContext().apply {
+      this.id = context.getString("id") ?: ""
+      this.customVariables = extractCustomVariables(context)
+      this.shouldUseDeviceIdAsUserId = getUseDeviceIdAsUserIdFlag(context)
+    }
   }
 
   /**
@@ -272,8 +394,11 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
    */
   @ReactMethod
   fun getInstance(accountId: Int, sdkKey: String, promise: Promise) {
-    val vwoInstance = getVWOInstance(accountId, sdkKey)
-    if (vwoInstance != null) {
+    val found = when {
+      isWingifyClient(accountId, sdkKey) -> getWingifyInstance(accountId, sdkKey) != null
+      else -> getVWOInstance(accountId, sdkKey) != null
+    }
+    if (found) {
       val result = Arguments.createMap()
       result.putBoolean("success", true)
       result.putInt("accountId", accountId)
@@ -282,7 +407,7 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
     } else {
       promise.reject(
         "INSTANCE_NOT_FOUND",
-        "VWO instance not found for accountId: $accountId and sdkKey: $sdkKey"
+        "FME instance not found for accountId: $accountId and sdkKey: $sdkKey"
       )
     }
   }
@@ -296,7 +421,7 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
    * @return A descriptive error message string.
    */
   private fun requireInstanceError(): String =
-    "Could not get VWO instance, please ensure VWO is initialized properly."
+    "Could not get FME instance, please ensure the SDK is initialized properly."
 
   /**
    * Clears (destroys) a specific VWO SDK instance identified by [accountId] and [sdkKey].
@@ -317,14 +442,19 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
       return
     }
     try {
-      VWO.clearInstance(accountId, sdkKey)
+      if (isWingifyClient(accountId, sdkKey)) {
+        Wingify.clearInstance(accountId, sdkKey)
+      } else {
+        VWO.clearInstance(accountId, sdkKey)
+      }
+      clientBrandsByInstanceKey.remove(instanceKey(accountId, sdkKey))
       val result = Arguments.createMap()
       result.putBoolean("success", true)
       result.putInt("accountId", accountId)
       result.putString("sdkKey", sdkKey)
       promise.resolve(result)
     } catch (e: Exception) {
-      promise.reject("CLEAR_INSTANCE_FAILED", e.message ?: "Failed to clear VWO instance.")
+      promise.reject("CLEAR_INSTANCE_FAILED", e.message ?: "Failed to clear FME instance.")
     }
   }
 
@@ -354,19 +484,38 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
     context: ReadableMap,
     promise: Promise
   ) {
-    val vwoUserContext = VWOUserContext().apply {
-      this.id = context.getString("id") ?: ""
-      this.customVariables = extractCustomVariables(context)
-      this.shouldUseDeviceIdAsUserId = getUseDeviceIdAsUserIdFlag(context)
-    }
+    if (isWingifyClient(accountId, sdkKey)) {
+      val wingifyUserContext = buildWingifyUserContext(context)
+      val wingifyInstance = getWingifyInstance(accountId, sdkKey)
+      if (wingifyInstance == null) {
+        promise.reject(clientErrorCode(accountId, sdkKey, "INSTANCE_ERROR"), requireInstanceError())
+        return
+      }
 
-    val vwoInstance = getVWOInstance(accountId, sdkKey)
-    if (vwoInstance == null) {
-      promise.reject("VWO_INSTANCE_ERROR", requireInstanceError())
+      wingifyInstance.getFlag(featureKey, wingifyUserContext, object : IWingifyListener {
+        override fun onSuccess(result: Any) {
+          if (result is WingifyGetFlag) {
+            promise.resolve(result.toWritableMap())
+          } else {
+            promise.reject("GET_FLAG_FAILED", "Unexpected result type")
+          }
+        }
+
+        override fun onFailure(error: String) {
+          promise.reject("GET_FLAG_FAILED", error)
+        }
+      })
       return
     }
 
-    val listener = object : IVwoListener {
+    val vwoUserContext = buildVwoUserContext(context)
+    val vwoInstance = getVWOInstance(accountId, sdkKey)
+    if (vwoInstance == null) {
+      promise.reject(clientErrorCode(accountId, sdkKey, "INSTANCE_ERROR"), requireInstanceError())
+      return
+    }
+
+    vwoInstance.getFlag(featureKey, vwoUserContext, object : IVwoListener {
       override fun onSuccess(result: Any) {
         if (result is GetFlag) {
           promise.resolve(result.toWritableMap())
@@ -378,9 +527,7 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
       override fun onFailure(error: String) {
         promise.reject("GET_FLAG_FAILED", error)
       }
-    }
-
-    vwoInstance.getFlag(featureKey, vwoUserContext, listener)
+    })
   }
 
   /**
@@ -409,21 +556,27 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
     eventProperties: ReadableMap?,
     promise: Promise
   ) {
-    val vwoUserContext = VWOUserContext().apply {
-      this.id = context.getString("id") ?: ""
-      this.customVariables = extractCustomVariables(context)
-      this.shouldUseDeviceIdAsUserId = getUseDeviceIdAsUserIdFlag(context)
-    }
     val properties = eventProperties?.toHashMap()?.filterValues { it != null } as Map<String, Any>
       ?: emptyMap<String, Any>()
 
-    val vwoInstance = getVWOInstance(accountId, sdkKey)
-    if (vwoInstance == null) {
-      promise.reject("VWO_INSTANCE_ERROR", requireInstanceError())
+    if (isWingifyClient(accountId, sdkKey)) {
+      val wingifyInstance = getWingifyInstance(accountId, sdkKey)
+      if (wingifyInstance == null) {
+        promise.reject(clientErrorCode(accountId, sdkKey, "INSTANCE_ERROR"), requireInstanceError())
+        return
+      }
+      wingifyInstance.trackEvent(eventName, buildWingifyUserContext(context), properties)
+      promise.resolve("Success")
       return
     }
 
-    vwoInstance.trackEvent(eventName, vwoUserContext, properties)
+    val vwoInstance = getVWOInstance(accountId, sdkKey)
+    if (vwoInstance == null) {
+      promise.reject(clientErrorCode(accountId, sdkKey, "INSTANCE_ERROR"), requireInstanceError())
+      return
+    }
+
+    vwoInstance.trackEvent(eventName, buildVwoUserContext(context), properties)
     promise.resolve("Success")
   }
 
@@ -451,20 +604,26 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
     context: ReadableMap,
     promise: Promise
   ) {
-    val vwoUserContext = VWOUserContext().apply {
-      this.id = context.getString("id") ?: ""
-      this.customVariables = extractCustomVariables(context)
-      this.shouldUseDeviceIdAsUserId = getUseDeviceIdAsUserIdFlag(context)
-    }
     val attributesMap = attributes.toHashMap().filterValues { it != null } as Map<String, Any>
 
-    val vwoInstance = getVWOInstance(accountId, sdkKey)
-    if (vwoInstance == null) {
-      promise.reject("VWO_INSTANCE_ERROR", requireInstanceError())
+    if (isWingifyClient(accountId, sdkKey)) {
+      val wingifyInstance = getWingifyInstance(accountId, sdkKey)
+      if (wingifyInstance == null) {
+        promise.reject(clientErrorCode(accountId, sdkKey, "INSTANCE_ERROR"), requireInstanceError())
+        return
+      }
+      wingifyInstance.setAttribute(attributesMap, buildWingifyUserContext(context))
+      promise.resolve("Success")
       return
     }
 
-    vwoInstance.setAttribute(attributesMap, vwoUserContext)
+    val vwoInstance = getVWOInstance(accountId, sdkKey)
+    if (vwoInstance == null) {
+      promise.reject(clientErrorCode(accountId, sdkKey, "INSTANCE_ERROR"), requireInstanceError())
+      return
+    }
+
+    vwoInstance.setAttribute(attributesMap, buildVwoUserContext(context))
     promise.resolve("Success")
   }
 
@@ -507,19 +666,24 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
       return
     }
 
-    val vwoUserContext = VWOUserContext().apply {
-      this.id = fromContext.getString("id") ?: ""
-      this.customVariables = extractCustomVariables(fromContext)
-      this.shouldUseDeviceIdAsUserId = getUseDeviceIdAsUserIdFlag(fromContext)
+    if (isWingifyClient(accountId, sdkKey)) {
+      val wingifyInstance = getWingifyInstance(accountId, sdkKey)
+      if (wingifyInstance == null) {
+        promise.reject(clientErrorCode(accountId, sdkKey, "INSTANCE_ERROR"), requireInstanceError())
+        return
+      }
+      wingifyInstance.setAlias(buildWingifyUserContext(fromContext), alias)
+      promise.resolve("Success")
+      return
     }
 
     val vwoInstance = getVWOInstance(accountId, sdkKey)
     if (vwoInstance == null) {
-      promise.reject("VWO_INSTANCE_ERROR", requireInstanceError())
+      promise.reject(clientErrorCode(accountId, sdkKey, "INSTANCE_ERROR"), requireInstanceError())
       return
     }
 
-    vwoInstance.setAlias(vwoUserContext, alias)
+    vwoInstance.setAlias(buildVwoUserContext(fromContext), alias)
     promise.resolve("Success")
   }
 
@@ -556,7 +720,9 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
       val sessionIdLong = sessionIdValue.toLong()
       sessionData["sessionId"] = sessionIdLong
     }
-    FMEConfig.setSessionData(sessionData as Map<String, Any>)
+    val sessionMap = sessionData as Map<String, Any>
+    FMEConfig.setSessionData(sessionMap)
+    WingifyFMEConfig.setSessionData(sessionMap)
   }
 
   /**
@@ -576,13 +742,23 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
    */
   @ReactMethod
   fun sendSdkInitTime(initTimeMs: Double, accountId: Int, sdkKey: String, promise: Promise) {
-    val vwoInstance = getVWOInstance(accountId, sdkKey)
-    if (vwoInstance == null) {
-      promise.reject("VWO_INSTANCE_ERROR", requireInstanceError())
-      return
-    }
+    val initTime = initTimeMs.toLong()
     try {
-      vwoInstance.sendSdkInitEvent(initTimeMs.toLong())
+      if (isWingifyClient(accountId, sdkKey)) {
+        val wingifyInstance = getWingifyInstance(accountId, sdkKey)
+        if (wingifyInstance == null) {
+          promise.reject(clientErrorCode(accountId, sdkKey, "INSTANCE_ERROR"), requireInstanceError())
+          return
+        }
+        wingifyInstance.sendSdkInitEvent(initTime, null)
+      } else {
+        val vwoInstance = getVWOInstance(accountId, sdkKey)
+        if (vwoInstance == null) {
+          promise.reject(clientErrorCode(accountId, sdkKey, "INSTANCE_ERROR"), requireInstanceError())
+          return
+        }
+        vwoInstance.sendSdkInitEvent(initTime, null)
+      }
       promise.resolve("Success")
     } catch (e: Exception) {
       promise.reject("SEND_SDK_INIT_EVENT_ERROR", e.message ?: "Failed to send SDK init event.")
@@ -656,11 +832,20 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
    * @return A [WritableMap] representing the flag state and its associated variables,
    *   ready to be sent across the React Native bridge to JavaScript.
    */
-  fun GetFlag.toWritableMap(): WritableMap {
+  fun GetFlag.toWritableMap(): WritableMap =
+    flagResultToWritableMap(this.isEnabled(), this.getVariables())
+
+  fun WingifyGetFlag.toWritableMap(): WritableMap =
+    flagResultToWritableMap(this.isEnabled(), this.getVariables())
+
+  private fun flagResultToWritableMap(
+    isEnabled: Boolean,
+    variables: List<Map<String, Any>>
+  ): WritableMap {
     val map = Arguments.createMap()
-    map.putBoolean("isEnabled", this.isEnabled())
+    map.putBoolean("isEnabled", isEnabled)
     val variablesArray = Arguments.createArray()
-    this.getVariables().forEach { variable ->
+    variables.forEach { variable ->
       val variableMap = Arguments.createMap()
       variableMap.putString("key", variable["key"] as? String)
       variableMap.putString("type", variable["type"] as? String)
@@ -764,10 +949,12 @@ class VwoFmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
   }
 
   /**
-   * Companion object holding constants for [VwoFmeReactNativeSdkModule].
+   * Companion object holding constants for [FmeReactNativeSdkModule].
    */
   companion object {
     /** The name used to register this module with the React Native bridge. */
     const val NAME = "VwoFmeReactNativeSdk"
+    private const val CLIENT_BRAND_VWO = "vwo"
+    private const val CLIENT_BRAND_WINGIFY = "wingify"
   }
 }

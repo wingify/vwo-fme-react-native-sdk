@@ -1,6 +1,9 @@
 buildscript {
   // Buildscript is evaluated before everything else so we can't use getExtOrDefault
-  def kotlin_version = rootProject.ext.has("kotlinVersion") ? rootProject.ext.get("kotlinVersion") : project.properties["VwoFmeReactNativeSdk_kotlinVersion"]
+  def kotlin_version = rootProject.ext.has("kotlinVersion") ? rootProject.ext.get("kotlinVersion") : (
+    project.properties["FmeReactNativeSdk_kotlinVersion"]
+      ?: project.properties["VwoFmeReactNativeSdk_kotlinVersion"]
+  )
 
   repositories {
     mavenLocal()
@@ -32,11 +35,18 @@ if (isNewArchitectureEnabled()) {
 }
 
 def getExtOrDefault(name) {
-  return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["VwoFmeReactNativeSdk_" + name]
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (
+    project.properties["FmeReactNativeSdk_" + name]
+      ?: project.properties["VwoFmeReactNativeSdk_" + name]
+  )
 }
 
 def getExtOrIntegerDefault(name) {
-  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["VwoFmeReactNativeSdk_" + name]).toInteger()
+  def value = rootProject.ext.has(name) ? rootProject.ext.get(name) : (
+    project.properties["FmeReactNativeSdk_" + name]
+      ?: project.properties["VwoFmeReactNativeSdk_" + name]
+  )
+  return value.toInteger()
 }
 
 def supportsNamespace() {
@@ -97,7 +107,8 @@ dependencies {
   //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-  api 'com.vwo.sdk:vwo-fme-android-sdk:1.13.1' // native android dependency (multi-instance support)
+  // Unified artifact (VWO + Wingify APIs), aligned with iOS Wingify-FME 1.50.0
+  api 'com.wingify.sdk:wingify-fme-android-sdk:1.50.+'
 
 }
 

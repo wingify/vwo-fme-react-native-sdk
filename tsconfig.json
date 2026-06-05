@@ -2,7 +2,8 @@
   "compilerOptions": {
     "rootDir": ".",
     "paths": {
-      "vwo-fme-react-native-sdk": ["./src/index"]
+      "vwo-fme-react-native-sdk": ["./src/index"],
+      "wingify-fme-react-native-sdk": ["./src/index"]
     },
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
