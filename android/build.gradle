@@ -108,7 +108,7 @@ dependencies {
   implementation "com.facebook.react:react-native:+"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
   // Unified artifact (VWO + Wingify APIs), aligned with iOS Wingify-FME 1.50.0
-  api 'com.wingify.sdk:wingify-fme-android-sdk:1.50.+'
+  api 'com.wingify.sdk:wingify-fme-android-sdk:1.55.0'
 
 }
 

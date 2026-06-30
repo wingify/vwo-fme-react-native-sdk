@@ -241,7 +241,7 @@ class FmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
     } else {
       "vwo-fme-react-native-sdk"
     }
-    val sdkVersion = "1.50.0"
+    val sdkVersion = "1.55.0"
 
     if (clientBrand == CLIENT_BRAND_WINGIFY) {
       val wingifyOptions = WingifyInitOptions().apply {

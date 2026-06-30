@@ -143,7 +143,7 @@ class FmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
       isUsageStatsDisabled: isUsageStatsDisabled,
       isAliasingEnabled: isAliasingEnabled,
       sdkName: FmeClientSdkBrandParser.bridgeSdkName(for: clientBrand),
-      sdkVersion: "1.50.0"
+      sdkVersion: "1.55.0"
     )
   }
 
