@@ -54,23 +54,14 @@ Native linking is unchanged: the bridge module remains `NativeModules.VwoFmeReac
 
 ## Release workflow (maintainers)
 
-Both podspec files are included in the npm tarball (`"files": ["*.podspec", ...]`). Use the matching `package.json` before publish:
+Both podspec files are included in the npm tarball (`"files": ["*.podspec", ...]`). Publishing is done by [.github/workflows/npm-publish.yml](./.github/workflows/npm-publish.yml) when a GitHub Release is published. The workflow builds once, then publishes both packages from the same commit:
 
-**VWO npm release (`vwo-fme-react-native-sdk`):**
+| npm package | Manifest used at publish time |
+| --- | --- |
+| `wingify-fme-react-native-sdk` | `package.json` |
+| `vwo-fme-react-native-sdk` | `package.vwo.json` |
 
-```bash
-# package.json must have: "name": "vwo-fme-react-native-sdk"
-npm run prepare
-npm publish
-```
-
-**Wingify npm release (`wingify-fme-react-native-sdk`):**
-
-```bash
-cp package.wingify.json package.json
-npm run prepare
-npm publish
-```
+`package.json` and `package.vwo.json` must use the same `version`, and the GitHub Release tag must be `v<version>` (for example `v1.55.0`). The repository secret `NPM_TOKEN` must be an npm token that can publish both package names.
 
 After publish, consumers run `pod install` in their app; autolinking installs the pod whose name matches the installed npm package.
 

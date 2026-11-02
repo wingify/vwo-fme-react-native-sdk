@@ -1,0 +1,140 @@
+name: Publish Package to npmjs
+
+# Publishes both npm packages from this repo when a GitHub Release is published:
+# - wingify-fme-react-native-sdk (package.json)
+# - vwo-fme-react-native-sdk (package.vwo.json)
+#
+# Required repository secret: NPM_TOKEN (npm automation token with publish access).
+# Optional: SLACK_NOTIFICATIONS_BOT_TOKEN for the release notification.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish wingify and vwo packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          # Release events otherwise check out the default branch, not the tag.
+          ref: ${{ github.event.release.tag_name || github.sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+          cache: yarn
+
+      - name: Install dependencies
+        run: |
+          # The example workspace is not in this repository. Drop it for install
+          # only; package manifests are restored before publish.
+          node <<'NODE'
+          const fs = require('fs');
+          if (fs.existsSync('example/package.json')) {
+            process.exit(0);
+          }
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          delete pkg.workspaces;
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          NODE
+          yarn install --frozen-lockfile
+
+      - name: Build package
+        run: yarn prepare
+
+      - name: Restore package manifests
+        run: git checkout -- package.json package.vwo.json
+
+      - name: Verify release version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || '' }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const wingify = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const vwo = JSON.parse(fs.readFileSync('package.vwo.json', 'utf8'));
+
+          if (wingify.name !== 'wingify-fme-react-native-sdk') {
+            throw new Error(
+              `package.json name is "${wingify.name}", expected "wingify-fme-react-native-sdk"`
+            );
+          }
+          if (vwo.name !== 'vwo-fme-react-native-sdk') {
+            throw new Error(
+              `package.vwo.json name is "${vwo.name}", expected "vwo-fme-react-native-sdk"`
+            );
+          }
+          if (wingify.version !== vwo.version) {
+            throw new Error(
+              `Version mismatch: package.json ${wingify.version} vs package.vwo.json ${vwo.version}`
+            );
+          }
+
+          const tag = process.env.RELEASE_TAG || '';
+          if (tag) {
+            const taggedVersion = tag.startsWith('v') ? tag.slice(1) : tag;
+            if (taggedVersion !== wingify.version) {
+              throw new Error(
+                `Release tag ${tag} does not match package version ${wingify.version}`
+              );
+            }
+          }
+
+          if (!fs.existsSync('lib/commonjs/index.js') || !fs.existsSync('lib/module/index.js')) {
+            throw new Error('Build output is missing. Expected lib/commonjs and lib/module.');
+          }
+
+          console.log(`Ready to publish ${wingify.version}`);
+          NODE
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Keep both manifests intact. Publishing reads package.json, so each
+          # publish copies one manifest into place from these snapshots.
+          cp package.json /tmp/package.wingify.json
+          cp package.vwo.json /tmp/package.vwo.json
+
+          publish_manifest() {
+            local manifest="$1"
+            cp "$manifest" package.json
+
+            local name version existing
+            name="$(node -p "require('./package.json').name")"
+            version="$(node -p "require('./package.json').version")"
+            existing="$(npm view "${name}@${version}" version 2>/dev/null || true)"
+
+            if [ "$existing" = "$version" ]; then
+              echo "${name}@${version} is already on npm. Skipping."
+              return 0
+            fi
+
+            echo "Publishing ${name}@${version}"
+            npm publish --access public --ignore-scripts
+            echo "Published ${name}@${version}"
+          }
+
+          publish_manifest /tmp/package.wingify.json
+          publish_manifest /tmp/package.vwo.json
+
+      - name: Notification
+        if: always()
+        uses: wingify/slack-github-action@v1.15.1-wingify
+        with:
+          channel-id: 'vwo-fs-fme-sdk-job-status'
+          slack-message: "<!here> VWO FME React Native SDK tag ${{ github.event.release.tag_name || github.sha }} published to npmjs (wingify-fme-react-native-sdk and vwo-fme-react-native-sdk) ${{ job.status == 'success' && ':heavy_check_mark:' || ':x:' }}. https://www.npmjs.com/package/wingify-fme-react-native-sdk https://www.npmjs.com/package/vwo-fme-react-native-sdk"
+          color: "${{ job.status == 'success' && '#00FF00' || '#FF0000' }}"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_NOTIFICATIONS_BOT_TOKEN }}
