@@ -91,12 +91,14 @@ To customize the SDK further, additional parameters can be passed to the `VWOIni
 | `pollInterval`               | Time interval for fetching updates from VWO servers (in milliseconds).                                                                                      | No           | Int64    | `60000`                         |
 | `integrations`               | To use callback function to handle integration events.                                                                                                             | No           | Bool | `true` |
 | `cachedSettingsExpiryTime`   | Expiry time for cached settings in milliseconds.                                                                                                            | No           | number    | `3600000`                       |
+| `cachedDecisionExpiryTime`   | Expiry time for cached `getFlag` decisions in milliseconds. `0` means decisions never expire.                                                              | No           | number    | `60000`                         |
 | `batchMinSize`               | Minimum size of batch to upload.                                                                                                                            | No           | number      | `10`                            |
 | `batchUploadTimeInterval`    | Batch upload time interval in milliseconds.                                                                                                                 | No           | Int64    | `300000`                        |
 | `maxRetries`                 | Maximum number of retry attempts for SDK initialization (default: 1).                                                                                       | No           | number      | `1`                            |
 | `retryDelayMs`               | Delay between retry attempts in milliseconds (default: 2000).                                                                                               | No           | number      | `2000`                         |
 | `initTimeoutMs`              | Timeout for SDK initialization in milliseconds (default: 15000).                                                                                            | No           | number      | `15000`                        |
 | `isAliasingEnabled`          | Enables alias support for linking user identities via `setAlias`.                                                                                           | No           | boolean     | `true`                         |
+| `shouldTriggerIntegrationCallbackAlways` | When `true`, integration callback fires on every evaluation (including cached decisions). Default fires once per unique payload.                  | No           | boolean     | `true`                         |
 
 ### Additional Callbacks
 
@@ -122,13 +124,59 @@ The following table explains all the parameters in the `context` object:
 | `id`              | Unique identifier for the user.                                            | Yes          | String   | `'unique_user_id'`                |
 | `customVariables` | Custom attributes for targeting.                                           | No           | Object   | `{ age: 25, location: 'US' }`     |
 | `shouldUseDeviceIdAsUserId` | Falls back to device ID when `id` is not provided.                         | No           | Boolean  | `true`                             |
+| `bucketingSeed`   | Custom seed used for bucketing instead of `id` when provided.              | No           | String   | `'stable-seed-123'`               |
+| `postSegmentationVariables` | Keys from `customVariables` applied as post-segmentation attributes. | No           | String[] | `['plan', 'country']`             |
+| `ipAddress`       | User IP for gateway user-details (sent when gateway is configured). iOS.   | No           | String   | `'1.2.3.4'`                       |
 
 #### Example
 
 ```javascript
 import {  VWOUserContext } from 'vwo-fme-react-native-sdk/src/types';
 
-const userContext: VWOUserContext = { id: 'unique_user_id', customVariables: { age: 25, location: 'US' } };
+const userContext: VWOUserContext = {
+  id: 'unique_user_id',
+  customVariables: { age: 25, location: 'US', plan: 'premium' },
+  postSegmentationVariables: ['plan', 'location'],
+  bucketingSeed: 'stable-seed-123',
+};
+```
+
+### Custom Bucketing Seed
+
+Use `bucketingSeed` when you need the same variation for different user IDs that share a seed (for example household or account-level consistency).
+
+```javascript
+const userContext: VWOUserContext = {
+  id: 'user_a',
+  bucketingSeed: 'household-123',
+};
+```
+
+### Cached Decision Expiry
+
+Use `cachedDecisionExpiryTime` so stored `getFlag` decisions expire and are re-evaluated after the configured interval.
+
+```javascript
+const options: VWOInitOptions = {
+  sdkKey: SDK_KEY,
+  accountId: ACCOUNT_ID,
+  cachedDecisionExpiryTime: 60000, // 1 minute
+};
+vwoClient = await init(options);
+```
+
+### Always Trigger Integration Callback
+
+When `shouldTriggerIntegrationCallbackAlways` is `true`, the integration callback runs on every evaluation, including decisions served from cache.
+
+```javascript
+const options: VWOInitOptions = {
+  sdkKey: SDK_KEY,
+  accountId: ACCOUNT_ID,
+  integrations: true,
+  shouldTriggerIntegrationCallbackAlways: true,
+};
+vwoClient = await init(options);
 ```
 
 ### User Aliasing
@@ -212,6 +260,27 @@ if (isEnabled) {
 }
 ```
 
+### Evaluating multiple flags
+
+`getFlags` evaluates several feature flags in one call and returns a collection you can look up by feature key. Pass `null` or `[]` to evaluate every flag from settings. Variation-shown impressions and MAU tracking are sent with the evaluation.
+
+| Parameter | Description | Required | Type | Example |
+| --- | --- | --- | --- | --- |
+| `flagNames` | Feature keys to evaluate. `null` or `[]` evaluates all flags from settings. | No | `string[] \| null` | `['checkout', 'pricing']` |
+| `context` | User context used for evaluation. | Yes | VWOUserContext | `{ id: 'unique_user_id' }` |
+
+```javascript
+const flags = await vwoClient.getFlags(['checkout', 'pricing'], userContext);
+const checkout = flags.get('checkout');
+
+if (checkout.isEnabled()) {
+  const color = checkout.getVariable('color', 'blue');
+}
+
+flags.keys(); // feature keys that were evaluated
+flags.size();
+```
+
 ### Custom Event Tracking
 
 Feature flags can be enhanced with connected metrics to track key performance indicators (KPIs) for your features. These metrics help measure the effectiveness of your testing rules by comparing control versus variation performance, and evaluate the impact of personalization and rollout campaigns. Use the `trackEvent` API to track custom events like conversions, user interactions, and other important metrics:
@@ -271,6 +340,17 @@ Example usage:
 
 ```javascript
 const options: VWOInitOptions = { sdkKey: SDK_KEY, accountId: ACCOUNT_ID, cachedSettingsExpiryTime: 600000 }; // 10 minutes
+vwoClient = await init(options);
+```
+
+### Cached Decision Expiry Time
+
+The `cachedDecisionExpiryTime` parameter controls how long a stored `getFlag` decision remains valid. After it expires, the next `getFlag` call re-evaluates the decision. Use `0` (default) for decisions that never expire.
+
+Example usage:
+
+```javascript
+const options: VWOInitOptions = { sdkKey: SDK_KEY, accountId: ACCOUNT_ID, cachedDecisionExpiryTime: 60000 }; // 1 minute
 vwoClient = await init(options);
 ```
 

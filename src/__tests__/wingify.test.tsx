@@ -10,7 +10,6 @@ jest.mock('react-native', () => ({
     VwoFmeReactNativeSdk: {
       initializeVwo: jest.fn().mockResolvedValue('ok'),
       initializeWingify: jest.fn().mockResolvedValue('ok'),
-      sendSdkInitTime: jest.fn().mockResolvedValue(undefined),
     },
   },
   NativeEventEmitter: jest.fn().mockImplementation(() => ({

@@ -23,11 +23,15 @@ export interface VWOInitOptions {
   integrations?: any;
   gatewayService?: { [key: string]: any };
   cachedSettingsExpiryTime?: number;
+  /** Expiry for cached getFlag decisions in ms; 0 = never expire. */
+  cachedDecisionExpiryTime?: number;
   pollInterval?: number;
   batchMinSize?: number;
   batchUploadTimeInterval?: number;
   isUsageStatsDisabled?: boolean;
   isAliasingEnabled?: boolean; // Enable for setup userId alias
+  /** When true, integration callback fires on every evaluation (including cached). Default: once per unique payload. */
+  shouldTriggerIntegrationCallbackAlways?: boolean;
   vwoMeta?: { [key: string]: any };
   maxRetries?: number; // Maximum number of retry attempts (default: 1)
   retryDelayMs?: number; // Delay in milliseconds between retries (default: 2000)
@@ -38,6 +42,12 @@ export interface VWOUserContext {
   id?: string;
   customVariables?: { [key: string]: any };
   shouldUseDeviceIdAsUserId?: boolean;
+  /** When set, used for bucketing instead of user id. */
+  bucketingSeed?: string;
+  /** Keys from customVariables applied as post-segmentation attributes. */
+  postSegmentationVariables?: string[];
+  /** User IP for gateway user-details (sent when gateway is configured). */
+  ipAddress?: string;
 }
 
 // Interface representing a variable used in feature flags
@@ -59,6 +69,16 @@ export interface GetFlagResult {
   isEnabled: any;
   getVariable: any;
   getVariables: any;
+}
+
+/**
+ * Collection of evaluated flags keyed by feature key.
+ * A missing key resolves to a disabled flag.
+ */
+export interface FlagCollectionResult {
+  get: (featureKey: string) => GetFlagResult;
+  keys: () => string[];
+  size: () => number;
 }
 
 // Enum representing different log levels for the SDK

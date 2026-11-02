@@ -54,6 +54,7 @@ describe('TypeScript Types and Interfaces', () => {
       expect(options.integrations).toBeUndefined();
       expect(options.gatewayService).toBeUndefined();
       expect(options.cachedSettingsExpiryTime).toBeUndefined();
+      expect(options.cachedDecisionExpiryTime).toBeUndefined();
       expect(options.pollInterval).toBeUndefined();
       expect(options.batchMinSize).toBeUndefined();
       expect(options.batchUploadTimeInterval).toBeUndefined();
@@ -70,10 +71,13 @@ describe('TypeScript Types and Interfaces', () => {
         integrations: { custom: 'integration' },
         gatewayService: { url: 'https://gateway.vwo.com' },
         cachedSettingsExpiryTime: 60000,
+        cachedDecisionExpiryTime: 60000,
         pollInterval: 30000,
         batchMinSize: 10,
         batchUploadTimeInterval: 120000,
         isUsageStatsDisabled: true,
+        isAliasingEnabled: true,
+        shouldTriggerIntegrationCallbackAlways: true,
         vwoMeta: { customKey: 'customValue' },
       };
 
@@ -86,10 +90,13 @@ describe('TypeScript Types and Interfaces', () => {
         url: 'https://gateway.vwo.com',
       });
       expect(options.cachedSettingsExpiryTime).toBe(60000);
+      expect(options.cachedDecisionExpiryTime).toBe(60000);
       expect(options.pollInterval).toBe(30000);
       expect(options.batchMinSize).toBe(10);
       expect(options.batchUploadTimeInterval).toBe(120000);
       expect(options.isUsageStatsDisabled).toBe(true);
+      expect(options.isAliasingEnabled).toBe(true);
+      expect(options.shouldTriggerIntegrationCallbackAlways).toBe(true);
       expect(options.vwoMeta).toEqual({ customKey: 'customValue' });
     });
 
@@ -124,6 +131,9 @@ describe('TypeScript Types and Interfaces', () => {
           country: 'US',
           isSubscribed: true,
         },
+        bucketingSeed: 'stable-seed-123',
+        postSegmentationVariables: ['plan', 'country'],
+        ipAddress: '1.2.3.4',
       };
 
       expect(context.id).toBe('user123');
@@ -133,6 +143,9 @@ describe('TypeScript Types and Interfaces', () => {
         country: 'US',
         isSubscribed: true,
       });
+      expect(context.bucketingSeed).toBe('stable-seed-123');
+      expect(context.postSegmentationVariables).toEqual(['plan', 'country']);
+      expect(context.ipAddress).toBe('1.2.3.4');
     });
 
     it('should allow various data types in customVariables', () => {

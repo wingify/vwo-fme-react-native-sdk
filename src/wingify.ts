@@ -21,6 +21,7 @@ import type {
   VWOUserContext,
   GetFlagResult,
   GetFlag,
+  FlagCollectionResult,
   Variable,
 } from './types';
 import { LogLevel } from './types';
@@ -62,5 +63,5 @@ export async function init(options: WingifyInitOptions): Promise<Wingify> {
   return client;
 }
 
-export type { GetFlagResult, GetFlag, Variable };
+export type { GetFlagResult, GetFlag, FlagCollectionResult, Variable };
 export { LogLevel };

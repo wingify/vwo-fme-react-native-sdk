@@ -15,7 +15,12 @@
  */
 
 import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
-import type { VWOInitOptions, VWOUserContext, GetFlagResult } from '../types';
+import type {
+  VWOInitOptions,
+  VWOUserContext,
+  GetFlagResult,
+  FlagCollectionResult,
+} from '../types';
 import {
   DEFAULT_MAX_RETRIES,
   DEFAULT_RETRY_DELAY_MS,
@@ -73,6 +78,59 @@ const logListener = myModuleEmitter.addListener('LogEvent', (event) => {
 /** Native FME bridge instance, typed to the {@link VWOBridgeInterface}. */
 const VWONative: VWOBridgeInterface = FmeReactNativeSdk;
 
+const DISABLED_FLAG = {
+  isEnabled: () => false,
+  getVariable: (_variableKey: string, defaultValue: any) => defaultValue,
+  getVariables: () => [],
+};
+
+function toGetFlagResult(flag: any): GetFlagResult {
+  const variables = Array.isArray(flag?.variables) ? flag.variables : [];
+  return {
+    isEnabled: function () {
+      return flag?.isEnabled;
+    },
+    getVariable: function (variableKey: string, defaultValue: any) {
+      for (const variable of variables) {
+        if (variable.key === variableKey) {
+          return variable.value !== undefined ? variable.value : defaultValue;
+        }
+      }
+      return defaultValue;
+    },
+    getVariables: function () {
+      return flag?.variables;
+    },
+  };
+}
+
+function toFlagCollection(payload: {
+  flags?: { [featureKey: string]: any };
+}): FlagCollectionResult {
+  const flags = payload?.flags ?? {};
+  return {
+    get(featureKey: string) {
+      const flag = flags[featureKey];
+      if (!flag) {
+        return DISABLED_FLAG;
+      }
+      return toGetFlagResult(flag);
+    },
+    keys() {
+      return Object.keys(flags);
+    },
+    size() {
+      return Object.keys(flags).length;
+    },
+  };
+}
+
+const EMPTY_FLAG_COLLECTION: FlagCollectionResult = {
+  get: () => DISABLED_FLAG,
+  keys: () => [],
+  size: () => 0,
+};
+
 function invokeNativeInitialize(
   options: Record<string, unknown>,
   clientSdkBrand: ClientSdkBrand
@@ -129,6 +187,17 @@ interface VWOBridgeInterface {
     context: VWOUserContext
   ): Promise<GetFlagResult>;
 
+  /**
+   * Evaluates multiple feature flags.
+   * Pass `null` or an empty list to evaluate every feature key from settings.
+   */
+  getFlags(
+    flagNames: string[] | null,
+    accountId: number,
+    sdkKey: string,
+    context: VWOUserContext
+  ): Promise<{ flags?: { [featureKey: string]: any } }>;
+
   /** Tracks a custom event with optional event properties for the given user context. */
   trackEvent(
     eventName: string,
@@ -156,13 +225,6 @@ interface VWOBridgeInterface {
 
   /** Sets session-level data for the current FME session. */
   setSessionData(data: { [key: string]: any }): void;
-
-  /** Sends the SDK initialization time metric to the VWO analytics backend. */
-  sendSdkInitTime(
-    initTimeMs: number,
-    accountId: number,
-    sdkKey: string
-  ): Promise<void> | void;
 }
 
 /**
@@ -184,7 +246,6 @@ export async function init(
   const MAX_RETRIES = options.maxRetries ?? DEFAULT_MAX_RETRIES;
   const RETRY_DELAY_MS = options.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
   const INIT_TIMEOUT_MS = options.initTimeoutMs ?? DEFAULT_INIT_TIMEOUT_MS;
-  const initStartTime = Date.now();
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
@@ -263,14 +324,6 @@ export async function init(
         );
       }
 
-      /* Record the total initialization duration and report it as an analytics metric. */
-      const sdkInitTime = Date.now() - initStartTime;
-      try {
-        await vwoInstance.sendSdkInitTime(sdkInitTime);
-      } catch (_e) {
-        /* Silently ignore metric-reporting failures — they must not block SDK usage. */
-      }
-
       return vwoInstance;
     } catch (error) {
       if (attempt <= MAX_RETRIES) {
@@ -312,6 +365,7 @@ function createMockVWOInstance() {
       getVariable: (_: string, defaultValue: any) => defaultValue,
       getVariables: () => [],
     }),
+    getFlags: async () => EMPTY_FLAG_COLLECTION,
     trackEvent: async () => {},
     setAttribute: async () => {},
     setAlias: async () => {},
@@ -405,6 +459,34 @@ export class VWO {
       return result;
     } catch (error) {
       console.error('Failed to get feature flag:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * Evaluates multiple feature flags for the given user context.
+   *
+   * Pass `null` or an empty list for `flagNames` to evaluate every feature key
+   * from settings. Variation-shown impressions and MAU tracking are always sent.
+   *
+   * @param {string[] | null | undefined} flagNames - Feature keys to evaluate, or null/empty for all flags.
+   * @param {VWOUserContext} context - The user context used for evaluation.
+   * @returns {Promise<FlagCollectionResult>} Flags keyed by feature key.
+   */
+  getFlags = async (
+    flagNames: string[] | null | undefined,
+    context: VWOUserContext
+  ): Promise<FlagCollectionResult> => {
+    try {
+      const payload = await VWONative.getFlags(
+        flagNames ?? null,
+        this.accountId ?? 0,
+        this.sdkKey ?? '',
+        context
+      );
+      return toFlagCollection(payload);
+    } catch (error) {
+      console.error('Failed to get feature flags:', error);
       throw error;
     }
   };
@@ -515,29 +597,10 @@ export class VWO {
   };
 
   /**
-   * Sends the SDK initialization time metric to the VWO analytics backend.
-   *
-   * This method requires a valid `accountId` and `sdkKey` to be set on the instance
-   * (i.e., the instance must have been created via {@link init} or retrieved via
-   * {@link VWO.getInstance}).
-   *
-   * @param {number} initTimeMs - The initialization duration in milliseconds.
-   * @returns {Promise<void>} Resolves when the metric has been dispatched.
-   * @throws {Error} If `accountId` or `sdkKey` is not set on the instance.
+   * @deprecated Init duration is reported by the native SDK on the usage-stats event.
+   * This method is kept for API compatibility and does nothing.
    */
-  sendSdkInitTime = async (initTimeMs: number): Promise<void> => {
-    const accountId = this.accountId ?? 0;
-    const sdkKey = this.sdkKey ?? '';
-    if (accountId === 0 || !sdkKey) {
-      throw new Error(
-        'sendSdkInitTime requires accountId and sdkKey. Use an instance from init() or VWO.getInstance().'
-      );
-    }
-    const result = VWONative.sendSdkInitTime(initTimeMs, accountId, sdkKey);
-    if (result && typeof result.then === 'function') {
-      await result;
-    }
-  };
+  sendSdkInitTime = async (_initTimeMs: number): Promise<void> => {};
 
   /**
    * Registers a callback that is invoked whenever an integration event is emitted

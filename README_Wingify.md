@@ -168,12 +168,14 @@ To customize the SDK further, additional parameters can be passed to the `VWOIni
 | `pollInterval`               | Time interval for fetching updates from VWO servers (in milliseconds).                                                                                      | No           | Int64    | `60000`                         |
 | `integrations`               | To use callback function to handle integration events.                                                                                                      | No           | Bool     | `true`                          |
 | `cachedSettingsExpiryTime`   | Expiry time for cached settings in milliseconds.                                                                                                            | No           | number   | `3600000`                       |
+| `cachedDecisionExpiryTime`   | Expiry time for cached `getFlag` decisions in milliseconds. `0` means decisions never expire.                                                              | No           | number   | `60000`                         |
 | `batchMinSize`               | Minimum size of batch to upload.                                                                                                                            | No           | number   | `10`                            |
 | `batchUploadTimeInterval`    | Batch upload time interval in milliseconds.                                                                                                                 | No           | Int64    | `300000`                        |
 | `maxRetries`                 | Maximum number of retry attempts for SDK initialization (default: 1).                                                                                       | No           | number   | `1`                             |
 | `retryDelayMs`               | Delay between retry attempts in milliseconds (default: 2000).                                                                                               | No           | number   | `2000`                          |
 | `initTimeoutMs`              | Timeout for SDK initialization in milliseconds (default: 15000).                                                                                            | No           | number   | `15000`                         |
 | `isAliasingEnabled`          | Enables alias support for linking user identities via `setAlias`.                                                                                           | No           | boolean  | `true`                          |
+| `shouldTriggerIntegrationCallbackAlways` | When `true`, integration callback fires on every evaluation (including cached decisions). Default fires once per unique payload.                  | No           | boolean  | `true`                          |
 
 ### Additional Callbacks
 
@@ -187,6 +189,9 @@ To customize the SDK further, additional parameters can be passed to the `VWOIni
 | `id`                         | Unique identifier for the user.                                            | Yes          | String   | `'unique_user_id'`            |
 | `customVariables`            | Custom attributes for targeting.                                           | No           | Object   | `{ age: 25, location: 'US' }` |
 | `shouldUseDeviceIdAsUserId`  | Falls back to device ID when `id` is not provided.                         | No           | Boolean  | `true`                        |
+| `bucketingSeed`              | Custom seed used for bucketing instead of `id` when provided.              | No           | String   | `'stable-seed-123'`           |
+| `postSegmentationVariables`  | Keys from `customVariables` applied as post-segmentation attributes.       | No           | String[] | `['plan', 'country']`         |
+| `ipAddress`                  | User IP for gateway user-details (sent when gateway is configured). iOS.   | No           | String   | `'1.2.3.4'`                   |
 
 ### User Aliasing
 
@@ -208,6 +213,42 @@ await vwoClient.setAlias(anonymousContext, 'logged_in_user_456');
 
 If your app does not have a stable user ID at evaluation time, set `shouldUseDeviceIdAsUserId: true` in user context.
 
+### Custom Bucketing Seed
+
+Use `bucketingSeed` when different user IDs should share the same variation via a common seed.
+
+```javascript
+const userContext: WingifyUserContext = {
+  id: 'user_a',
+  bucketingSeed: 'household-123',
+};
+```
+
+### Cached Decision Expiry
+
+Use `cachedDecisionExpiryTime` so stored `getFlag` decisions expire and are re-evaluated after the configured interval.
+
+```javascript
+const options: WingifyInitOptions = {
+  sdkKey: SDK_KEY,
+  accountId: ACCOUNT_ID,
+  cachedDecisionExpiryTime: 60000, // 1 minute
+};
+```
+
+### Always Trigger Integration Callback
+
+When `shouldTriggerIntegrationCallbackAlways` is `true`, the integration callback runs on every evaluation, including decisions served from cache.
+
+```javascript
+const options: WingifyInitOptions = {
+  sdkKey: SDK_KEY,
+  accountId: ACCOUNT_ID,
+  integrations: true,
+  shouldTriggerIntegrationCallbackAlways: true,
+};
+```
+
 ### Multi-Instance / Multi-Account
 
 ```javascript
@@ -219,6 +260,13 @@ const reusedClientA = VWO.getInstance(111111, 'sdk-key-a');
 ### Basic Feature Flagging
 
 Use `getFlag` to evaluate a feature for a user and access its variables.
+
+Use `getFlags` to evaluate several features in one call. Pass `null` or `[]` to evaluate every flag from settings.
+
+```javascript
+const flags = await wingifyClient.getFlags(['checkout', 'pricing'], userContext);
+const checkout = flags.get('checkout');
+```
 
 ### Custom Event Tracking
 
@@ -235,6 +283,10 @@ Use `pollInterval` in init options to auto-refresh settings.
 ### Cached Settings Expiry Time
 
 Use `cachedSettingsExpiryTime` to control settings cache freshness.
+
+### Cached Decision Expiry Time
+
+Use `cachedDecisionExpiryTime` to control how long stored `getFlag` decisions remain valid.
 
 ### Event Batching Configuration
 

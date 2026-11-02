@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.60.0] - 2026-11-02
+
+### Added
+
+- Added `getFlags` to evaluate several feature flags in one call. Pass `null` or `[]` to evaluate every flag from settings.
+
+```ts
+const flags = await client.getFlags(['checkout', 'pricing'], userContext);
+const checkout = flags.get('checkout');
+```
+
+### Added
+
+- Added `cachedDecisionExpiryTime` init option so cached `getFlag` decisions expire after the configured interval (milliseconds; `0` = never expire).
+- Added `shouldTriggerIntegrationCallbackAlways` init option to fire the integration callback on every evaluation, including cached decisions.
+- Added `bucketingSeed` on user context for custom bucketing (same seed yields a consistent decision across users/evaluations).
+- Added `ipAddress` on user context for gateway user-details (sent when a gateway is configured; iOS native support).
+
+```ts
+const options: VWOInitOptions = {
+  sdkKey: SDK_KEY,
+  accountId: ACCOUNT_ID,
+  cachedDecisionExpiryTime: 60000,
+  shouldTriggerIntegrationCallbackAlways: true,
+};
+
+const userContext: VWOUserContext = {
+  id: 'user_123',
+  customVariables: { plan: 'premium', country: 'US' },
+  postSegmentationVariables: ['plan', 'country'],
+  bucketingSeed: 'stable-seed-123',
+  ipAddress: '1.2.3.4',
+};
+```
+
 ## [1.55.0] - 2026-06-30
 
 ### Added

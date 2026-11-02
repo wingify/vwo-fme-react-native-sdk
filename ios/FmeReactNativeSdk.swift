@@ -31,12 +31,14 @@ class FmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
     let hasIntegrations: Bool
     let gatewayService: [String: Any]
     let cachedSettingsExpiry: Int64?
+    let cachedDecisionExpiry: Int64?
     let pollInterval: Int64?
     let batchMinSize: Int?
     let batchUploadTimeInterval: Int64?
     let initMeta: [String: Any]
     let isUsageStatsDisabled: Bool
     let isAliasingEnabled: Bool
+    let shouldTriggerIntegrationCallbackAlways: Bool
     let sdkName: String
     let sdkVersion: String
   }
@@ -106,6 +108,11 @@ class FmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
       cachedSettingsExpiry = expiry
     }
 
+    var cachedDecisionExpiry: Int64? = nil
+    if let decisionExpiry = options["cachedDecisionExpiryTime"] as? Int64 {
+      cachedDecisionExpiry = decisionExpiry
+    }
+
     var pollInterval: Int64? = nil
     if let interval = options["pollInterval"] as? Int64 {
       pollInterval = interval
@@ -126,6 +133,8 @@ class FmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
     let isUsageStatsDisabled = options["isUsageStatsDisabled"] as? Bool ?? false
     let logPrefix = options["logPrefix"] as? String ?? ""
     let isAliasingEnabled = options["isAliasingEnabled"] as? Bool ?? false
+    let shouldTriggerIntegrationCallbackAlways =
+      options["shouldTriggerIntegrationCallbackAlways"] as? Bool ?? false
     let hasIntegrations = options["integrations"] != nil
 
     return InitParams(
@@ -136,14 +145,16 @@ class FmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
       hasIntegrations: hasIntegrations,
       gatewayService: gatewayService,
       cachedSettingsExpiry: cachedSettingsExpiry,
+      cachedDecisionExpiry: cachedDecisionExpiry,
       pollInterval: pollInterval,
       batchMinSize: batchMinSize,
       batchUploadTimeInterval: batchUploadTimeInterval,
       initMeta: initMeta,
       isUsageStatsDisabled: isUsageStatsDisabled,
       isAliasingEnabled: isAliasingEnabled,
+      shouldTriggerIntegrationCallbackAlways: shouldTriggerIntegrationCallbackAlways,
       sdkName: FmeClientSdkBrandParser.bridgeSdkName(for: clientBrand),
-      sdkVersion: "1.55.0"
+      sdkVersion: "1.60.0"
     )
   }
 
@@ -199,6 +210,7 @@ class FmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
       integrations: params.hasIntegrations ? self : nil,
       gatewayService: params.gatewayService,
       cachedSettingsExpiryTime: params.cachedSettingsExpiry,
+      cachedDecisionExpiryTime: params.cachedDecisionExpiry,
       pollInterval: params.pollInterval,
       batchMinSize: params.batchMinSize,
       batchUploadTimeInterval: params.batchUploadTimeInterval,
@@ -207,12 +219,15 @@ class FmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
       logTransport: self,
       isUsageStatsDisabled: params.isUsageStatsDisabled,
       vwoMeta: params.initMeta,
-      isAliasingEnabled: params.isAliasingEnabled
+      isAliasingEnabled: params.isAliasingEnabled,
+      shouldTriggerIntegrationCallbackAlways: params.shouldTriggerIntegrationCallbackAlways
     )
 
     FmeNativeSdk.initialize(options: initOptions) { result in
       switch result {
       case .success(let message):
+        FmeNativeSdk.getInstance(accountId: params.accountId, sdkKey: params.sdkKey)?
+          .sendSdkInitEvent(sdkInitTime: 0)
         resolver(message)
       case .failure(let error):
         rejecter("E_INITIALIZATION_FAILED", error.localizedDescription, nil)
@@ -232,16 +247,6 @@ class FmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
       return
     }
     resolver(FmeClientSdkBrandParser.name(for: clientSdkBrand(accountId: accountId.intValue, sdkKey: sdkKey)))
-  }
-
-  @objc
-  func sendSdkInitTime(_ initTimeMs: NSNumber, accountId: NSNumber, sdkKey: String) {
-    let accountIdValue = accountId.intValue
-    guard accountIdValue != 0, !sdkKey.isEmpty else { return }
-
-    if let instance = FmeNativeSdk.getInstance(accountId: accountIdValue, sdkKey: sdkKey) {
-      instance.sendSdkInitEvent(sdkInitTime: initTimeMs.int64Value)
-    }
   }
 
   @objc
@@ -291,7 +296,10 @@ class FmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
     FmeUserContext(
       id: context["id"] as? String,
       shouldUseDeviceIdAsUserId: context["shouldUseDeviceIdAsUserId"] as? Bool ?? false,
-      customVariables: context["customVariables"] as? [String: Any] ?? [:]
+      customVariables: context["customVariables"] as? [String: Any] ?? [:],
+      postSegmentationVariables: context["postSegmentationVariables"] as? [String],
+      bucketingSeed: context["bucketingSeed"] as? String,
+      ipAddress: context["ipAddress"] as? String
     )
   }
 
@@ -311,6 +319,52 @@ class FmeReactNativeSdk: RCTEventEmitter, IntegrationCallback, LogTransport {
     FmeNativeSdk.getFlag(featureKey: featureKey, context: userContext(from: context)) { flag in
       resolver(["isEnabled": flag.isEnabled(), "variables": flag.getVariables()])
     }
+  }
+
+  @objc
+  func getFlags(
+    _ flagNames: NSArray?,
+    accountId: NSNumber,
+    sdkKey: String,
+    context: NSDictionary,
+    resolver: @escaping RCTPromiseResolveBlock,
+    rejecter: @escaping RCTPromiseRejectBlock
+  ) {
+    let accountIdValue = accountId.intValue
+    let sdkKeyValue = sdkKey
+    let names = featureKeys(from: flagNames)
+    let ctx = userContext(from: context)
+
+    if accountIdValue != 0 && !sdkKeyValue.isEmpty,
+       let instance = FmeNativeSdk.getInstance(accountId: accountIdValue, sdkKey: sdkKeyValue) {
+      instance.getFlags(flagNames: names, context: ctx) { collection in
+        resolver(self.payload(from: collection))
+      }
+      return
+    }
+
+    FmeNativeSdk.getFlags(flagNames: names, context: ctx) { collection in
+      resolver(self.payload(from: collection))
+    }
+  }
+
+  private func featureKeys(from flagNames: NSArray?) -> [String]? {
+    guard let flagNames = flagNames else {
+      return nil
+    }
+    return flagNames.compactMap { $0 as? String }
+  }
+
+  private func payload(from collection: FlagCollection) -> [String: Any] {
+    var flags: [String: Any] = [:]
+    collection.forEach { key, flag in
+      let flagPayload: [String: Any] = [
+        "isEnabled": flag.isEnabled(),
+        "variables": flag.getVariables(),
+      ]
+      flags[key] = flagPayload
+    }
+    return ["flags": flags]
   }
 
   @objc

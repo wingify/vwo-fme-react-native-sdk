@@ -16,7 +16,6 @@
 
 package com.vwofmereactnativesdk
 
-import android.util.Log
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
@@ -29,6 +28,7 @@ import com.vwo.interfaces.IVwoInitCallback
 import com.vwo.interfaces.IVwoListener
 import com.vwo.interfaces.integration.IntegrationCallback as VwoIntegrationCallback
 import com.vwo.models.user.GetFlag
+import com.vwo.models.user.FlagCollection as VwoFlagCollection
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableArray
 import com.facebook.react.bridge.WritableMap
@@ -42,7 +42,9 @@ import com.wingify.interfaces.integration.IntegrationCallback as WingifyIntegrat
 import com.wingify.models.user.WingifyInitOptions
 import com.wingify.models.user.WingifyUserContext
 import com.wingify.models.user.GetFlag as WingifyGetFlag
+import com.wingify.models.user.FlagCollection as WingifyFlagCollection
 import com.wingify.models.user.FMEConfig as WingifyFMEConfig
+import kotlin.concurrent.thread
 
 /**
  * React Native native module that serves as the Android bridge for the VWO FME SDK.
@@ -53,12 +55,11 @@ import com.wingify.models.user.FMEConfig as WingifyFMEConfig
  *
  * Key capabilities include:
  * - SDK initialization with configurable options (polling, caching, batching, logging, etc.)
- * - Feature flag evaluation via [getFlag]
+ * - Feature flag evaluation via [getFlag] and [getFlags]
  * - Event tracking via [trackEvent]
  * - User attribute management via [setAttribute]
  * - User aliasing via [setAlias]
  * - Session data management via [setSessionData]
- * - SDK initialization timing via [sendSdkInitTime]
  *
  * @param reactContext The [ReactApplicationContext] provided by the React Native framework,
  *   used for accessing Android application context and emitting events to JavaScript.
@@ -124,11 +125,13 @@ class FmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
    *   - `isUsageStatsDisabled` (Boolean, optional): Flag to disable usage statistics collection.
    *   - `pollInterval` (Int, optional): Interval in milliseconds for polling settings updates.
    *   - `cachedSettingsExpiryTime` (Int, optional): Expiry time in seconds for cached settings.
+   *   - `cachedDecisionExpiryTime` (Int, optional): Expiry time in milliseconds for cached getFlag decisions; 0 = never expire.
    *   - `batchMinSize` (Int, optional): Minimum batch size before flushing events.
    *   - `batchUploadTimeInterval` (Double, optional): Time interval in milliseconds between batch uploads.
    *   - `logLevel` (String, optional): Logging level (e.g., "debug", "info", "error"). Defaults to "error".
    *   - `logPrefix` (String, optional): Prefix string for log messages.
    *   - `isAliasingEnabled` (Boolean, optional): Whether user aliasing is enabled.
+   *   - `shouldTriggerIntegrationCallbackAlways` (Boolean, optional): When true, integration callback fires on every evaluation.
    * @param promise A [Promise] that resolves with a success message on successful initialization,
    *   or rejects with error code `VWO_INIT_FAILED` and an error message on failure.
    */
@@ -187,6 +190,13 @@ class FmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
         0
       }
 
+    val cachedDecisionExpiryTime =
+      if (options.hasKey("cachedDecisionExpiryTime") && !options.isNull("cachedDecisionExpiryTime")) {
+        options.getInt("cachedDecisionExpiryTime")
+      } else {
+        0
+      }
+
     val batchMinSize =
       if (options.hasKey("batchMinSize") && !options.isNull("batchMinSize")) {
         options.getInt("batchMinSize")
@@ -230,6 +240,13 @@ class FmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
         false
       }
 
+    val shouldTriggerIntegrationCallbackAlways =
+      if (options.hasKey("shouldTriggerIntegrationCallbackAlways") && !options.isNull("shouldTriggerIntegrationCallbackAlways")) {
+        options.getBoolean("shouldTriggerIntegrationCallbackAlways")
+      } else {
+        false
+      }
+
     val logger = mutableMapOf<String, Any>().apply {
       put("level", normalizedLogLevel)
       put("prefix", logPrefix)
@@ -241,7 +258,7 @@ class FmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
     } else {
       "vwo-fme-react-native-sdk"
     }
-    val sdkVersion = "1.55.0"
+    val sdkVersion = "1.60.0"
 
     if (clientBrand == CLIENT_BRAND_WINGIFY) {
       val wingifyOptions = WingifyInitOptions().apply {
@@ -250,6 +267,7 @@ class FmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
         this.context = reactApplicationContext
         this.pollInterval = pollInterval
         this.cachedSettingsExpiryTime = cachedSettingsExpiryTime
+        this.cachedDecisionExpiryTime = cachedDecisionExpiryTime
         this.gatewayService = gatewayService as Map<String, Any>
         this.logger = logger
         this.sdkName = sdkName
@@ -259,12 +277,14 @@ class FmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
         this.isUsageStatsDisabled = isUsageStatsDisabled
         this._vwo_meta = vwoMetaData
         this.isAliasingEnabled = isAliasingEnabled
+        this.shouldTriggerIntegrationCallbackAlways = shouldTriggerIntegrationCallbackAlways
         if (hasIntegrations) {
           this.integrations = createWingifyIntegrationCallback()
         }
       }
       Wingify.init(wingifyOptions, object : IWingifyInitCallback {
         override fun wingifyInitSuccess(wingify: Wingify, message: String) {
+          wingify.sendSdkInitEvent()
           promise.resolve(message)
         }
 
@@ -281,6 +301,7 @@ class FmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
       this.context = reactApplicationContext
       this.pollInterval = pollInterval
       this.cachedSettingsExpiryTime = cachedSettingsExpiryTime
+      this.cachedDecisionExpiryTime = cachedDecisionExpiryTime
       this.gatewayService = gatewayService as Map<String, Any>
       this.logger = logger
       this.sdkName = sdkName
@@ -290,12 +311,14 @@ class FmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
       this.isUsageStatsDisabled = isUsageStatsDisabled
       this._vwo_meta = vwoMetaData
       this.isAliasingEnabled = isAliasingEnabled
+      this.shouldTriggerIntegrationCallbackAlways = shouldTriggerIntegrationCallbackAlways
       if (hasIntegrations) {
         this.integrations = createVwoIntegrationCallback()
       }
     }
     VWO.init(vwoOptions, object : IVwoInitCallback {
       override fun vwoInitSuccess(vwo: VWO, message: String) {
+        vwo.sendSdkInitEvent()
         promise.resolve(message)
       }
 
@@ -350,6 +373,10 @@ class FmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
       this.id = context.getString("id") ?: ""
       this.customVariables = extractCustomVariables(context)
       this.shouldUseDeviceIdAsUserId = getUseDeviceIdAsUserIdFlag(context)
+      if (context.hasKey("bucketingSeed") && !context.isNull("bucketingSeed")) {
+        this.bucketingSeed = context.getString("bucketingSeed")
+      }
+      this.postSegmentationVariables = extractPostSegmentationVariables(context)
     }
   }
 
@@ -358,6 +385,10 @@ class FmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
       this.id = context.getString("id") ?: ""
       this.customVariables = extractCustomVariables(context)
       this.shouldUseDeviceIdAsUserId = getUseDeviceIdAsUserIdFlag(context)
+      if (context.hasKey("bucketingSeed") && !context.isNull("bucketingSeed")) {
+        this.bucketingSeed = context.getString("bucketingSeed")
+      }
+      this.postSegmentationVariables = extractPostSegmentationVariables(context)
     }
   }
 
@@ -531,6 +562,48 @@ class FmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
   }
 
   /**
+   * Evaluates multiple feature flags for the given user context.
+   *
+   * Pass a null or empty [flagNames] array to evaluate every feature key from settings.
+   * Tracking calls are always enabled.
+   */
+  @ReactMethod
+  fun getFlags(
+    flagNames: ReadableArray?,
+    accountId: Int,
+    sdkKey: String,
+    context: ReadableMap,
+    promise: Promise
+  ) {
+    val names = readableArrayToFlagNames(flagNames)
+    thread(start = true) {
+      try {
+        if (isWingifyClient(accountId, sdkKey)) {
+          val userContext = buildWingifyUserContext(context)
+          val instance = getWingifyInstance(accountId, sdkKey)
+          if (instance == null) {
+            promise.resolve(disabledFlagsPayload(names))
+            return@thread
+          }
+          val collection = instance.getFlags(names, userContext)
+          promise.resolve(collection.toWritableMap())
+          return@thread
+        }
+
+        val userContext = buildVwoUserContext(context)
+        val instance = getVWOInstance(accountId, sdkKey)
+        if (instance == null) {
+          promise.resolve(disabledFlagsPayload(names))
+          return@thread
+        }
+        promise.resolve(instance.getFlags(names, userContext).toWritableMap())
+      } catch (e: Exception) {
+        promise.reject("GET_FLAGS_FAILED", e.message ?: "Failed to evaluate feature flags.")
+      }
+    }
+  }
+
+  /**
    * Tracks a custom event for the specified user context on a given VWO instance.
    *
    * Sends the event identified by [eventName] along with optional [eventProperties]
@@ -692,6 +765,18 @@ class FmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
       ?.filterValues { it != null } as? HashMap<String, Any> ?: HashMap<String, Any>()
   }
 
+  private fun extractPostSegmentationVariables(fromContext: ReadableMap?): List<String>? {
+    if (fromContext == null || !fromContext.hasKey("postSegmentationVariables") || fromContext.isNull("postSegmentationVariables")) {
+      return null
+    }
+    val array = fromContext.getArray("postSegmentationVariables") ?: return null
+    val result = mutableListOf<String>()
+    for (i in 0 until array.size()) {
+      array.getString(i)?.let { result.add(it) }
+    }
+    return result
+  }
+
   private fun getUseDeviceIdAsUserIdFlag(fromContext: ReadableMap?): Boolean {
     if (fromContext == null) return false
     return if (fromContext.hasKey("shouldUseDeviceIdAsUserId") && !fromContext.isNull("shouldUseDeviceIdAsUserId")) {
@@ -725,44 +810,32 @@ class FmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
     WingifyFMEConfig.setSessionData(sessionMap)
   }
 
-  /**
-   * Sends the SDK initialization time to the native VWO SDK for performance tracking.
-   *
-   * This allows the VWO backend to collect metrics about how long the SDK
-   * initialization took on the client side, which is useful for monitoring
-   * SDK health and performance across different environments.
-   *
-   * @param initTimeMs The SDK initialization duration in milliseconds (as a [Double]
-   *   since React Native bridges numbers as doubles). Converted to [Long] before sending.
-   * @param accountId The VWO account identifier for the target SDK instance.
-   * @param sdkKey The SDK key for the target SDK instance.
-   * @param promise A [Promise] resolved with `null` on success, or rejected with
-   *   `INVALID_ARGS` if credentials are missing, `VWO_INSTANCE_ERROR` if the instance
-   *   is unavailable, or `SEND_SDK_INIT_EVENT_ERROR` if an exception occurs.
-   */
-  @ReactMethod
-  fun sendSdkInitTime(initTimeMs: Double, accountId: Int, sdkKey: String, promise: Promise) {
-    val initTime = initTimeMs.toLong()
-    try {
-      if (isWingifyClient(accountId, sdkKey)) {
-        val wingifyInstance = getWingifyInstance(accountId, sdkKey)
-        if (wingifyInstance == null) {
-          promise.reject(clientErrorCode(accountId, sdkKey, "INSTANCE_ERROR"), requireInstanceError())
-          return
-        }
-        wingifyInstance.sendSdkInitEvent(initTime, null)
-      } else {
-        val vwoInstance = getVWOInstance(accountId, sdkKey)
-        if (vwoInstance == null) {
-          promise.reject(clientErrorCode(accountId, sdkKey, "INSTANCE_ERROR"), requireInstanceError())
-          return
-        }
-        vwoInstance.sendSdkInitEvent(initTime, null)
-      }
-      promise.resolve("Success")
-    } catch (e: Exception) {
-      promise.reject("SEND_SDK_INIT_EVENT_ERROR", e.message ?: "Failed to send SDK init event.")
+  private fun readableArrayToFlagNames(flagNames: ReadableArray?): Array<String>? {
+    if (flagNames == null) {
+      return null
     }
+    val names = ArrayList<String>()
+    for (index in 0 until flagNames.size()) {
+      if (flagNames.getType(index) == ReadableType.String) {
+        flagNames.getString(index)?.let { names.add(it) }
+      }
+    }
+    return names.toTypedArray()
+  }
+
+  private fun disabledFlagsPayload(flagNames: Array<String>?): WritableMap {
+    val flags = Arguments.createMap()
+    flagNames?.forEach { key ->
+      if (key.isNotBlank()) {
+        val flag = Arguments.createMap()
+        flag.putBoolean("isEnabled", false)
+        flag.putArray("variables", Arguments.createArray())
+        flags.putMap(key, flag)
+      }
+    }
+    val result = Arguments.createMap()
+    result.putMap("flags", flags)
+    return result
   }
 
   /**
@@ -837,6 +910,32 @@ class FmeReactNativeSdkModule(reactContext: ReactApplicationContext) :
 
   fun WingifyGetFlag.toWritableMap(): WritableMap =
     flagResultToWritableMap(this.isEnabled(), this.getVariables())
+
+  fun WingifyFlagCollection.toWritableMap(): WritableMap =
+    flagCollectionToWritableMap { flags ->
+      val iterator = this.iterator()
+      while (iterator.hasNext()) {
+        val entry = iterator.next()
+        flags.putMap(entry.key, entry.value.toWritableMap())
+      }
+    }
+
+  fun VwoFlagCollection.toWritableMap(): WritableMap =
+    flagCollectionToWritableMap { flags ->
+      val iterator = this.iterator()
+      while (iterator.hasNext()) {
+        val entry = iterator.next()
+        flags.putMap(entry.key, entry.value.toWritableMap())
+      }
+    }
+
+  private fun flagCollectionToWritableMap(writeFlags: (WritableMap) -> Unit): WritableMap {
+    val flags = Arguments.createMap()
+    writeFlags(flags)
+    val result = Arguments.createMap()
+    result.putMap("flags", flags)
+    return result
+  }
 
   private fun flagResultToWritableMap(
     isEnabled: Boolean,
